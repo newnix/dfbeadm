@@ -1,0 +1,79 @@
+Design and Implementation of the HAMMER2 boot environment utility (draft)
+
+Due to the nature of HAMMER2, being a CoW filesystem, where snapshots can be mounted and used as master/active psuedo filesystems
+it's possible to implement similar functionality to the beadm script that manages ZFS boot environments. Similar work has been done 
+with BTRFS subvolumes and ostree as well. This is meant to bring the same functionality to DragonFly BSD, which will enable "bulletproof"
+updates, and possibly improve the development cycle of DragonFly BSD developers beyond the capabilities of vkernels alone.
+
+There is not currently a library for HAMMER2 operations, so this utility will have to include hammer2(8) code directly.
+Depending on the means of doing so, a separate libhammer2(3) could be created.
+
+NAMES:
+--------------------------------------------------------------------------------
+While looking through the HAMMER2 design doc written by dillon@, I found no restricted characters listed, 
+however, for the sake of trying to prevent issues with any changes in H2 moving forward, I'll 
+enforce a restriction on using the following characters: "/ @ -"
+Ideally, the PFS layout would be of the style "level1.level2.level3..levelN", so a PFS mounted at 
+"/usr/local/jails" would be labeled "usr.local.jails", on top of which, snapshots created and used 
+by this utility would have "-${prefix}.${timestamp}" appended to their label. This way it's easy to 
+track where the different PFSes are supposed to be mounted during normal operation and at what point in time 
+the snapshot was created, making data recovery easier if need be, and giving an absolute date
+along with the label chosen by the user, just in case it wasn't memorable enough on its own.
+
+These names are going to be constructed using a combination of strlcat(3) and smprintf(3), and 
+ideally stored in some sort of list structure that can be reordered before displaying data to
+the user. Depending on what information is available through the H2 code, we could look at
+sorting by size, name, and date created.
+
+ACTIVATION:
+--------------------------------------------------------------------------------
+Activation is going to be tricky, due to the nature of H2, it will become necessary to atomically update the fstab(5)
+to use the new H2 PFS definitions while preserving any mount-time options that were initially declared. 
+To do so, we'll need to create a temporary file, match the PFS names up to the snapshot separator ('-' in this implementation),
+and rerite the text up to the next whitespace separator (' ' or '\t').
+After writing this file, we move the current fstab to `/etc/fstab.bak` and put our temporary file in its place.
+At least until this is known to be working reliably, a warning should be displayed to the user, advising they double-check
+the newly written fstab, possibly adding a flag to display the file contents after writing.
+
+DESTRUCTION:
+--------------------------------------------------------------------------------
+Destruction is pretty simple by comparison, check that the user isn't asking us to destroy the PFSes specified in the fstab,
+then delete the snapshots referenced. 
+
+SWITCHING:
+--------------------------------------------------------------------------------
+This is the same process as activation, but with the distinct ability to verify the user
+isn't asking us to switch to the current boot env, in which case, we can exit early.
+Otherwise, this process is the same as activation.
+
+NOOP:
+--------------------------------------------------------------------------------
+The 'n' flag, similar to most OpenBSD utilities and zfs utilities, will be a "no-op"
+guarantee. If this flag is set, no changes will be made to the current boot environments
+and none will be created, instead, we just report to the user on stderr what steps would have 
+been taken. We then print a message to the user that they'll need to run the same commands
+again with sudo/doas/root/pfexec to actually commit the changes.
+There will be a check before continuing to any other functions to verify that using "-n" or "-l"
+doesn't require root access. 
+
+
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+The most basic invocation of this tool would be:
+	dfbeadm -ac v5.2
+
+Which will both create and then activate a new collection of snapshots for the given boot environment "v5.2"
+This will of course, require root access for /etc/fstab and actually issuing the snapshot commands. 
+internally, the tool grabs mount info from the vfs layer using getfsstat(3), and writes out the necessary
+PFS information before creating snapshots for each mountpoint.
+
+Updating the fstab should be fairly simple to do through the setfsent(3) function and writing to an fstab struct, 
+but first, I'd need to ensure that a temporary file is used, ideally something like `/tmp/fstab.${pid}`.
+The temporary file is then read back, optionally printed out for the user to see, and if no errors are encountered
+the existing fstab gets moved to `/etc/fstab.bak`, and the temporary file takes place of `/etc/fstab`.
+
+The variable PATH_FSTAB will need to be set before any operations can be made on the new file. The temp file creation
+and testing should be done before the snapshots are created as well, as it should be discared if errors are encountered. 
+Additionally, the fstab swap should only take place after the snapshots have been completed.
