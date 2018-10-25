@@ -85,22 +85,46 @@
 #include "snapfs.h"
 #endif
 
+#define NOOPMASK 4
+#define RDEBUG 8
+
 extern char **environ;
+extern uint8_t exflags; /* this will be used to define some additional flags */
+
+/*
+ * ----------------------
+ *  exflags layout
+ * ----------------------
+ * 0 0 0 0 0 0 0 0
+ * | | | | | | | |
+ * | | | | | | | \- verbosity flag
+ * | | | | | | \- verbosity flag
+ * | | | | | \- dry run flag
+ * | | | | \- runtime debug printouts
+ * | | | \- reserved
+ * | | \- reserved 
+ * | \- reserved
+ * \- reserved
+ */
+
+extern uint8_t exflags = 0;
 
 int 
 main(int argc, char **argv) { 
 	/* obviously, this is where we get some basic data from the user */
-	int ch;
+	int ch, ret;
+
+	ret = ch = 0;
 
 	/* bail early */
 	if ( argc == 1 ) { usage(); }
-	while((ch = getopt(argc,argv,"a:c:d:hlnr:")) != -1) { 
+	while((ch = getopt(argc,argv,"a:c:d:hlnrD")) != -1) { 
 		switch(ch) { 
 			case 'a': 
-				activate(optarg);
+				ret = activate(optarg);
 				break;
 			case 'c':
-				create(optarg);
+				ret = create(optarg);
 				break;
 			/*
 			 * TODO: Add a config file to read, so users can specify which filesystems they actually want managed
@@ -109,20 +133,25 @@ main(int argc, char **argv) {
 			case 'd':
 				deactivate(optarg);
 				break;
+			case 'D':
+				exflags |= RDEBUG;
+				break;
 			case 'h':
 				usage();
 			case 'l':
 				list();
 				break;
 			case 'n':
-				/* enforce no-op rules for any flags given */
-				break;
-			case 'r':
-				rmsnap(optarg);
+				/* 
+				 * This is the NO-OP flag, it will mostly be useful during the debugging 
+				 * process, but also will allow users to get additional information regarding what
+				 * could happen, especially with increased verbosity
+				 */
+				exflags |= NOOPMASK;
 				break;
 			default:
 				usage();
 		}
 	}
-	return(0);
+	return(ret);
 }
