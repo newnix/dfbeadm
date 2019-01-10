@@ -68,7 +68,7 @@ create(const char *label) {
 	}
 
 	/* now that we have an idea what we're working with, let's go about cloning this data */
-	if ((befs = calloc((size_t) fstabcount, sizeof(bedata))) == NULL) {
+	if ((befs = calloc((size_t)fstabcount, sizeof(bedata))) == NULL) {
 		fprintf(stderr,"Could not allocate initial buffer!\n");
 		return(2); /* probably OOM */
 	}

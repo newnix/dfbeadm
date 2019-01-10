@@ -7,7 +7,6 @@ ish2(const char *mountpoint) {
 	int mp;
 	hammer2_ioc_inode_t h2ino;
 
-	mp = 0;
 	/* 
 	 * additional possible utility is the version info
 	 * HAMMER2IOC_VERSION_GET, that wouuld return a 

@@ -45,6 +45,10 @@ build: ${SRC}
 build-dbg: ${SRC}
 	$(CC) -o $(TARGET) $(CFLAGS) $(DBGFLAGS) $(INCS) $(LIBS) $(SRC)
 
+check: ${SRC}
+	#clang-check-devel -analyze ${SRC}
+	clang-tidy-devel ${SRC}
+
 debug: build-dbg
 	@mkdir -p ${PREFIX}${DESTDIR}
 	@chown ${USER}:${GROUP} ${TARGET}

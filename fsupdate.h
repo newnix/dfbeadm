@@ -167,22 +167,20 @@ printfs(const char *fstab) {
 }
 
 static int
-swapfstab(const char *current, int * newfd, bool uselabel) {
+swapfstab(const char *current, int *newfd, bool uselabel) {
 	/*
-	 * thi function will open the old fstab, clean it out after dumpting contents to a new 
+	 * this function will open the old fstab, clean it out after dumpting contents to a new 
 	 * backup file, then write the contents of the ephemeral fstab into it
 	 */
 	int bfd, cfd;
-	ssize_t written;
+	ssize_t written = 0;
 	char tmpbuf[PAGESIZE]; /* work with a page of data at a time, defaulting to 4096 if not otherwise defined */
-
-	bfd = cfd = written = 0;
 
 	if ((cfd = open(current, O_RDWR|O_NONBLOCK)) <= 0) { 
 		fprintf(stderr,"%s: unable to open r/w, check your user and file permissions!\n",current);
 		return(-1);
 	}
-	if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_RDWR|O_NONBLOCK)) <= 0) {
+	if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_APPEND|O_NONBLOCK)) <= 0) {
 		fprintf(stderr, "/etc/fstab.bak could not ebe created, verify file and user permissions are set properly!\n");
 		return(-2);
 	}
