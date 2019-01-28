@@ -16,7 +16,8 @@
 #include <vfs/hammer2/hammer2_ioctl.h>
 
 /* borderline useless "debug" printout */
-#define dbg fprintf(stderr, "Something went wrong in %s:%s: %d!\n", __func__, __FILE__, __LINE__);
+/* should be reworked as needed */
+#define dbg fprintf(stderr, "Error in %s:%s: %d\n", __func__, __FILE__, __LINE__);
 
 /* struct to hold the relevant data to rebuild the fstab */
 struct bootenv_data { 
@@ -35,7 +36,7 @@ typedef struct bootenv_data bedata;
 static int autoactivate(bedata *snapfs, int fscount, const char *label);
 static int create(const char *label);
 static bool ish2(const char *mountpoint);
-static void trunc(char *longstring);
+static void fstrunc(char *longstring);
 static void mktargets(bedata *target, int fscount, const char *label);
 static void printfs(const char *fstab);
 static int relabel(bedata *fs, const char *label);
@@ -56,8 +57,10 @@ usage(void) {
 	               "  -a  Activate the given boot environment\n"
 	               "  -c  Create a new boot environment with the given label\n"
 	               "  -d  Destroy the given boot environment\n"
+								 "  -D  Print debugging information during execution\n"
 	               "  -h  This help text\n"
 	               "  -l  List existing boot environments\n"
+								 "  -n  No-op/dry run, only show what would be done\n"
 	               "  -r  Remove the given boot environment\n");
 	exit(0);
 }

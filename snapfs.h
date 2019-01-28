@@ -71,6 +71,6 @@ xtractLabel(const char *newfs, char *label) {
 			label[i] = *pfssep;
 		}
 		label[i] = 0;
-		fprintf(stderr,"xtractLabel: %d\nLabel: %s\n", __LINE__, label);
+		fprintf(stderr,"%s: %s\n", __func__, label);
 	}
 }

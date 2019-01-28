@@ -29,6 +29,6 @@ ish2(const char *mountpoint) {
  * Cut down a string to fit in the boot environment limitations
  */
 static void
-trunc(char *longstring) { 
+fstrunc(char *longstring) { 
 	snprintf(longstring, NAME_MAX, "%s", longstring);
 }

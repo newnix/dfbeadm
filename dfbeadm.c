@@ -89,8 +89,6 @@
 #define RDEBUG 8
 
 extern char **environ;
-extern uint8_t exflags; /* this will be used to define some additional flags */
-
 /*
  * ----------------------
  *  exflags layout
@@ -107,13 +105,14 @@ extern uint8_t exflags; /* this will be used to define some additional flags */
  * \- reserved
  */
 
-extern uint8_t exflags = 0;
-
 int 
 main(int argc, char **argv) { 
+	/* a bitmap flag value to pass to other functions */
+	uint8_t exflags; 
 	/* obviously, this is where we get some basic data from the user */
 	int ch, ret;
 
+	exflags = 0;
 	ret = ch = 0;
 
 	/* bail early */
