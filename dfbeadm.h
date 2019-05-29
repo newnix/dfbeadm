@@ -33,16 +33,17 @@ struct efstab_lookup {
 };
 
 typedef struct bootenv_data bedata;
-static int autoactivate(bedata *snapfs, int fscount, const char *label);
-static int create(const char *label);
-static bool ish2(const char *mountpoint);
-static void fstrunc(char *longstring);
-static void mktargets(bedata *target, int fscount, const char *label);
-static void printfs(const char *fstab);
-static int relabel(bedata *fs, const char *label);
-static int snapfs(bedata *snapfs, int fscount);
-static void xtractLabel(const char *fs, char *label);
-static int swapfstab(const char *current, int * newfd, bool uselabel);
+/* XXX: multiple definition issue? */
+int autoactivate(bedata *snapfs, int fscount, const char *label);
+int create(const char *label);
+bool ish2(const char *mountpoint);
+void fstrunc(char *longstring);
+void mktargets(bedata *target, int fscount, const char *label);
+void printfs(const char *fstab);
+int relabel(bedata *fs, const char *label);
+int snapfs(bedata *snapfs, int fscount);
+void xtractLabel(const char *fs, char *label);
+int swapfstab(const char *current, int * newfd, bool uselabel);
 
 extern char *__progname;
 
@@ -62,5 +63,5 @@ usage(void) {
 	               "  -l  List existing boot environments\n"
 								 "  -n  No-op/dry run, only show what would be done\n"
 	               "  -r  Remove the given boot environment\n");
-	exit(0);
+	_exit(0);
 }

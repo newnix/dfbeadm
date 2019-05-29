@@ -1,7 +1,7 @@
 .POSIX:
 
 ## Program specs ##
-SRC = dfbeadm.c
+SRC = dfbeadm.c fscollect.c fstest.c fsupdate.c
 TARGET = dfbeadm
 
 ## Some environmental info for installation ##
@@ -40,14 +40,14 @@ help:
 	@printf "Valid targets: build, debug, help, install, uninstall, rebuild, reinstall, run\n"
 
 build: ${SRC}
-	$(CC) -o $(TARGET) $(CFLAGS) $(INCS) $(LIBS) $(SRC)
+	$(CC) -o $(TARGET) $(CFLAGS) $(INCS) $(LIBS) $?
 
 build-dbg: ${SRC}
-	$(CC) -o $(TARGET) $(CFLAGS) $(DBGFLAGS) $(INCS) $(LIBS) $(SRC)
+	$(CC) -o $(TARGET) $(CFLAGS) $(DBGFLAGS) $(INCS) $(LIBS) $?
 
 check: ${SRC}
 	#clang-check-devel -analyze ${SRC}
-	clang-tidy-devel ${SRC}
+	clang-tidy-devel $?
 
 debug: build-dbg
 	@mkdir -p ${PREFIX}${DESTDIR}
