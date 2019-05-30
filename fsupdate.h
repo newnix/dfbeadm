@@ -31,11 +31,15 @@
  * DAMAGE.
  */
 
-#define FSUP_H
+#define DFBEADM_FSUP_H
+#ifndef DFBEADM_MAIN_H
+#include "dfbeadm.h"
+#endif
 #ifndef PAGESIZE
 #define PAGESIZE 4096
 #endif
 
+int activate(const char *label);
 int autoactivate(bedata *snapfs, int fscount, const char *label);
 int deactivate(const char *label);
 int rmenv(const char *label);

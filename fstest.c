@@ -31,13 +31,17 @@
  * DAMAGE.
  */
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <sys/vfs/hammer2/hammer2_ioctl.h>
+#include <vfs/hammer2/hammer2_ioctl.h>
+#include <unistd.h>
 
-#ifndef H2TEST_H
-#include "fstest.c"
+#ifndef DFBEADM_H2TEST_H
+#include "fstest.h"
 #endif
+
+extern bool dbg;
 
 /*
  * Determine if the given mountpoint is a HAMMER2 filesystem 

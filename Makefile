@@ -1,7 +1,7 @@
 .POSIX:
 
 ## Program specs ##
-SRC = dfbeadm.c fscollect.c fstest.c fsupdate.c
+SRC = dfbeadm.c fscollect.c fstest.c fsupdate.c fslist.c snapfs.c
 TARGET = dfbeadm
 
 ## Some environmental info for installation ##

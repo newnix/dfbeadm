@@ -57,31 +57,31 @@
 #include <unistd.h>
 
 /* holds prototypes */
-#ifndef DFBEADM
+#ifndef DFBEADM_MAIN_H
 #include "dfbeadm.h"
 #endif
 /* collect the filesystems into a struct buffer */
-#ifndef FSCOLLECT_H
+#ifndef DFBEADM_FSCOLLECT_H
 #include "fscollect.h"
 #endif
 /* functions to destroy boot environments */
-#ifndef FSDESTROY_H
+#ifndef DFBEADM_FSDESTROY_H
 #include "fsdestroy.h"
 #endif
 /* functions to get the available environments */
-#ifndef DF_LIST_H
+#ifndef DFBEADM_DF_LIST_H
 #include "fslist.h"
 #endif
 /* functions to test filesystems */
-#ifndef H2TEST_H
+#ifndef DFBEADM_H2TEST_H
 #include "fstest.h"
 #endif
 /* generate and install the new fstab */
-#ifndef FSUP_H
+#ifndef DFBEADM_FSUP_H
 #include "fsupdate.h"
 #endif
 /* make the snapshots */
-#ifndef SNAPFS_H
+#ifndef DFBEADM_SNAPFS_H
 #include "snapfs.h"
 #endif
 
@@ -90,6 +90,7 @@
 
 extern char **environ;
 /*
+ * TODO: Rework and possibly expand for more robust option parsing
  * ----------------------
  *  exflags layout
  * ----------------------
@@ -105,6 +106,14 @@ extern char **environ;
  * \- reserved
  */
 
+static void usage(void);
+/* This is where the actual logic processing should take place */
+int cook(int *flags, char **args);
+
+/* 
+ * TODO: Remove all but the most rudimentary logic from this function, instead 
+ * pass the important data down to cook(), which will then determine how best to proceed
+ */
 int 
 main(int argc, char **argv) { 
 	/* a bitmap flag value to pass to other functions */
@@ -153,4 +162,36 @@ main(int argc, char **argv) {
 		}
 	}
 	return(ret);
+}
+
+int
+cook(int *flags, char **args) {
+	int retc;
+
+	/* Placeholder logic to quelch compiler warnings */
+	if ((flags != NULL) && (args != NULL)) {
+		retc = 0;
+	} else {
+		retc = 1;
+	}
+
+	return(retc);
+}
+
+/*
+ * tell the user how this program works
+ */
+static void __attribute__((noreturn))
+usage(void) { 
+	fprintf(stderr,"%s: Utility to create HAMMER2 boot environments.\n",__progname);
+	fprintf(stderr,"Usage:\n"
+	               "  -a  Activate the given boot environment\n"
+	               "  -c  Create a new boot environment with the given label\n"
+	               "  -d  Destroy the given boot environment\n"
+								 "  -D  Print debugging information during execution\n"
+	               "  -h  This help text\n"
+	               "  -l  List existing boot environments\n"
+								 "  -n  No-op/dry run, only show what would be done\n"
+	               "  -r  Remove the given boot environment\n");
+	_exit(0);
 }

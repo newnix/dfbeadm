@@ -37,7 +37,11 @@
 #include <fstab.h>
 #include <stdbool.h>
 #include <stdio.h>
-#ifndef FSUP_H
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#ifndef DFBEADM_FSUP_H
 #include "fsupdate.h"
 #endif
 
@@ -65,8 +69,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 	snprintf(efstab, (size_t)512, "/tmp/.fstab.%s_%u", label, getpid());
 
 	if ((efd = open(efstab, O_RDWR|O_CREAT|O_NONBLOCK|O_APPEND)) <= 0) { 
-		dbg;
-		fprintf(stderr, "Unable to open %s for writing!\n", efstab);
+		fprintf(stderr, "%s [%s:%u] %s: Unable to open %s for writing!\n",__progname,__FILE__,__LINE__,__func__,efstab);
 		free(efstab);
 		return(-1);
 	}
@@ -103,7 +106,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 /*
  * activate a given boot environment
  */
-static int
+int
 activate(const char *label) { 
 	/* 
 	 * the *label parameter is only used for the pfs lookups, by default this is called by create()
@@ -176,6 +179,10 @@ printfs(const char *fstab) {
 	endfsent();
 }
 
+/* 
+ * XXX: Clang states that some of the code here will never be reached, 
+ * revisit to ensure this is working as intended
+ */
 int
 swapfstab(const char *current, int *newfd, bool uselabel) {
 	/*

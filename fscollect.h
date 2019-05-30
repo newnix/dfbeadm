@@ -32,8 +32,8 @@
  */
 
 /* only define things once */
-#define FSCOLLECT_H
-#ifndef DFBEADM
+#define DFBEADM_FSCOLLECT_H
+#ifndef DFBEADM_MAIN_H
 #include "dfbeadm.h"
 #endif
 

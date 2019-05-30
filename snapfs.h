@@ -1,76 +1,40 @@
-#define SNAPFS_H
-/* 
- * This should ideall be a filesystem agnostic function
- * to create a snapshot with the given label
- * Honestly, with the current bedata definitions, fscount and label may not be necessary parameters
+/*
+ * Copyright (c) 2018, Exile Heavy Industries
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the disclaimer
+ * below) provided that the following conditions are met:
+ * 
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * 
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * 
+ * * Neither the name of the copyright holder nor the names of its contributors may be used
+ *   to endorse or promote products derived from this software without specific
+ *   prior written permission.
+ * 
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
+ * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
  */
-static int
-snapfs(bedata *fstarget, int fscount) { 
-	/* 
-	 * This likely uses HAMMER2IOC_PFS_SNAPSHOT to create hammer2 snapshots, will need to reference
-	 * the hammer2 utility implementation.
-	 * TODO: Turn this function into an abstraction for any CoW filesystem, selected at compile-time
-	 * then if I'm able, possibly even available at runtime should multiple CoW filesystems be available
-	 * though this could be expanded to any filesystem with the same functionality of snapshots. Possibly 
-	 * including both HAMMER and UFS in later versions
-	 */
-	int fd, i;
-	char *newfs;
 
-	i = fd = 0;
+#define DFBEADM_SNAPFS_H
+#ifndef DFBEADM_MAIN_H
+#include "dfbeadm.h"
+#endif
 
-	if ((newfs = calloc(NAME_MAX, sizeof(char))) == NULL) { 
-		dbg;
-		return(-1);
-	}
-
-	for (i ^= i; i < fscount; i++) {
-		if (fstarget[i].snap) {
-			/* possibly fixes the locking issue observed in recent builds */
-			if ((fd = open(fstarget[i].fstab.fs_file, O_RDONLY|O_NONBLOCK)) <= 0) {
-				fprintf(stderr, "Can't open %s!\n%s\n", fstarget[i].fstab.fs_file, strerror(errno));
-			}
-			fprintf(stderr, "Creating snapshot %s...\nOld label: %s\n", fstarget[i].fstab.fs_spec, fstarget[i].curlabel);
-
-			xtractLabel(fstarget[i].fstab.fs_spec, newfs);
-			/* 
-			 * This is one of the two sections of this program that actually requires 
-			 * root access as far as I'm aware. The other being the obvious installation of the
-			 * new fstab file. 
-			 */
-			strlcpy(fstarget[i].snapshot.name, newfs, NAME_MAX);
-			/* We use the following ioctl() to actually create a snapshot */
-			if (ioctl(fd, HAMMER2IOC_PFS_SNAPSHOT, &fstarget[i].snapshot) != -1) {
-				fprintf(stdout, "Created new snapshot: %s\n", fstarget[i].snapshot.name);
-			} else {
-				fprintf(stderr, "H2 Snap failed!\n%s\n(target: %s)\n",strerror(errno), fstarget[i].snapshot.name);
-			}
-			fprintf(stderr, "Closing fd %d for mountpoint %s\n", fd, fstarget[i].fstab.fs_file);
-			close(fd);
-			memset(newfs, 0, NAME_MAX);
-		}
-	}
-	/* this is to separate activation from creation, despite being the same conceptually */
-	autoactivate(fstarget, fscount, newfs);
-	free(newfs);
-	return(0);
-}
-
-static void
-xtractLabel(const char *newfs, char *label) {
-	/* this function just returns the PFS label of the new snapshot */
-	char *pfssep;
-	int i;
-
-	if ((pfssep = strchr(newfs, PFSDELIM)) == NULL) {
-		dbg;
-		/* TODO: Revisit this code, seems to be causing trouble with NULLFS mounts */
-		exit(13); /* to be handled by something else later */
-	} else {
-		for (i = 0, ++pfssep; *pfssep != 0; i++,pfssep++) {
-			label[i] = *pfssep;
-		}
-		label[i] = 0;
-		fprintf(stderr,"%s: %s\n", __func__, label);
-	}
-}
+int snapfs(bedata *fstarget, int fscount);
+void xtractLabel(const char *newfs, char *label);

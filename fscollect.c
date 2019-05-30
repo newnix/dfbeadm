@@ -36,9 +36,17 @@
 #include <stdbool.h>
 #include <string.h>
 
-#ifndef FSCOLLECT_H
+#ifndef DFBEADM_FSCOLLECT_H
 #include "fscollect.h"
 #endif
+#ifndef DFBADM_H2TEST_H
+#include "fstest.h"
+#endif
+#ifndef DFBEADM_SNAPFS_H
+#include "snapfs.h"
+#endif
+
+extern bool dbg;
 
 /* 
  * create a boot environment
@@ -155,7 +163,7 @@ mktargets(bedata *target, int fscount, const char *label) {
 		if (ish2(current->fs_file)) { 
 			target[i].snap = true;
 			if (relabel(&target[i], label) != 0) { 
-				dbg;
+				fprintf(stderr,"%s [%s:%u] %s: Unable to write label %s to %s!\n",__progname,__FILE__,__LINE__,__func__,label,target[i].fstab.fs_file);
 			}
 		} else {
 			target[i].snap = false;
@@ -189,9 +197,9 @@ relabel (bedata *fs, const char *label) {
 
 	/* simply check for the existence of a boot environment */
 	if ((found = strchr(fs->fstab.fs_spec, PFSDELIM)) == NULL) {
-		fprintf(stderr, "Are you certain %s mounted %s is a HAMMER2 filesystem?\n", fs->fstab.fs_spec, fs->fstab.fs_file);
+		fprintf(stderr, "%s [%s:%u] %s: Are you certain %s mounted %s is a HAMMER2 filesystem?\n", 
+				__progname, __FILE__, __LINE__, __func__, fs->fstab.fs_spec, fs->fstab.fs_file);
 		/* this can throw false positives if there's no existing snapshot/PFS mountpoints */
-		dbg;
 		return(-1);
 	} else { 
 	/* this is incorrect */

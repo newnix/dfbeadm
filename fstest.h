@@ -31,7 +31,7 @@
  * DAMAGE.
  */
 
-#define H2TEST_H
+#define DFBEADM_H2TEST_H
 
 bool ish2(const char *mountpoint);
 void fstrunc(char *longstring);
