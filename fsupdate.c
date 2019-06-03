@@ -91,13 +91,8 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 	printfs(getfstab());
 	/* this may be doable in a more clean manner, but it should work properly */
 	fprintf(stdout,"Creating backup fstab...\n");
-	/* I'm not sure if this is necessarily correct, but it supposedly guarantees some atomicity in its operation */
-	/* 
-	 * I suspct the issue is with these rename calls
-	 *rename("/etc/fstab", "/etc/fstab.bak");
-	 */
 	fprintf(stdout,"Installing new fstab...\n");
-	unlink(efstab);
+	/* unlink(efstab); Do not unlink, as we can't be sure it's written properly now */
 	close(efd);
 	free(efstab);
 	return(0);
@@ -200,11 +195,12 @@ swapfstab(const char *current, int *newfd, bool uselabel) {
 	/* First ensure the fstab even exists, with no dynamic allocations, we can simply bail early */
 	if ((stat(current,&curfstab)) == 0) {
 		if ((cfd = open(current, O_RDWR|O_NONBLOCK)) <= 0) { 
-			fprintf(stderr,"%s: unable to open r/w, check your user and file permissions!\n",current);
+			fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s r/w, %s\n",__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
 			return(-1);
 		}
-		if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_APPEND|O_NONBLOCK)) <= 0) {
-			fprintf(stderr, "/etc/fstab.bak could not ebe created, verify file and user permissions are set properly!\n");
+		/* This call is failing for some reason, to the point where clang is warning code beyond this function is marked as non-reachable */
+		if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_NONBLOCK|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) <= 0) {
+			fprintf(stderr, "ERR: %s [%s:%u] %s: /etc/fstab.bak could not be created, verify file and user permissions are set properly!\n",__progname,__FILE__,__LINE__,__func__);
 			return(-2);
 		}
 	} else {
@@ -214,7 +210,7 @@ swapfstab(const char *current, int *newfd, bool uselabel) {
 	}
 
 	/* read cfd into bfd, close bfd, rewind cfd, dump newfd into it */
-	for (;written <= curfstab.st_size;) {
+	for (;written < curfstab.st_size;) {
 		pread(cfd, &tmpbuf, PAGESIZE, writepoint);
 		/* these check errno for possible errors, may split into seprate functions later */
 		switch (errno) {
