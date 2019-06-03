@@ -38,7 +38,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 #ifndef DFBEADM_FSUP_H
@@ -58,8 +61,6 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 	int i, efd;
 	char *efstab;
 	
-	return(0); /* temporarily disable the activation, as that seems to cause issues */
-	
 	if ((efstab = calloc((size_t)512, sizeof(char))) == NULL) { 
 		fprintf(stderr,"Unable to allocate buffer for *efstab!\n");
 		return(-1);
@@ -69,7 +70,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 	snprintf(efstab, (size_t)512, "/tmp/.fstab.%s_%u", label, getpid());
 
 	if ((efd = open(efstab, O_RDWR|O_CREAT|O_NONBLOCK|O_APPEND)) <= 0) { 
-		fprintf(stderr, "%s [%s:%u] %s: Unable to open %s for writing!\n",__progname,__FILE__,__LINE__,__func__,efstab);
+		fprintf(stderr, "ERR: %s [%s:%u] %s: Unable to open %s for writing!\n",__progname,__FILE__,__LINE__,__func__,efstab);
 		free(efstab);
 		return(-1);
 	}
@@ -96,7 +97,6 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 	 *rename("/etc/fstab", "/etc/fstab.bak");
 	 */
 	fprintf(stdout,"Installing new fstab...\n");
-	rename(efstab, "/etc/fstab");
 	unlink(efstab);
 	close(efd);
 	free(efstab);
@@ -190,22 +190,32 @@ swapfstab(const char *current, int *newfd, bool uselabel) {
 	 * backup file, then write the contents of the ephemeral fstab into it
 	 */
 	int bfd, cfd;
-	ssize_t written = 0;
+	struct stat curfstab;
+	ssize_t written;
+	off_t writepoint;
 	char tmpbuf[PAGESIZE]; /* work with a page of data at a time, defaulting to 4096 if not otherwise defined */
 
-	if ((cfd = open(current, O_RDWR|O_NONBLOCK)) <= 0) { 
-		fprintf(stderr,"%s: unable to open r/w, check your user and file permissions!\n",current);
+	written = 0; writepoint = 0;
+
+	/* First ensure the fstab even exists, with no dynamic allocations, we can simply bail early */
+	if ((stat(current,&curfstab)) == 0) {
+		if ((cfd = open(current, O_RDWR|O_NONBLOCK)) <= 0) { 
+			fprintf(stderr,"%s: unable to open r/w, check your user and file permissions!\n",current);
+			return(-1);
+		}
+		if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_APPEND|O_NONBLOCK)) <= 0) {
+			fprintf(stderr, "/etc/fstab.bak could not ebe created, verify file and user permissions are set properly!\n");
+			return(-2);
+		}
+	} else {
+		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to stat %s (%s)\n",
+				__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
 		return(-1);
 	}
-	if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_APPEND|O_NONBLOCK)) <= 0) {
-		fprintf(stderr, "/etc/fstab.bak could not ebe created, verify file and user permissions are set properly!\n");
-		return(-2);
-	}
 
-	/* need to read from cfd into bfd */
-	/* at this point, we should have 3 available file descriptors */
-	for (;;) {
-		read(cfd, &tmpbuf, PAGESIZE);
+	/* read cfd into bfd, close bfd, rewind cfd, dump newfd into it */
+	for (;written <= curfstab.st_size;) {
+		pread(cfd, &tmpbuf, PAGESIZE, writepoint);
 		/* these check errno for possible errors, may split into seprate functions later */
 		switch (errno) {
 			case EBADF:
@@ -234,7 +244,7 @@ swapfstab(const char *current, int *newfd, bool uselabel) {
 			default:
 				continue;
 		}
-		written = write(bfd, &tmpbuf, PAGESIZE);
+		written += pwrite(bfd, &tmpbuf, PAGESIZE, writepoint);
 		switch (errno) {
 			case EBADF:
 				/* given bad fd */
@@ -273,12 +283,9 @@ swapfstab(const char *current, int *newfd, bool uselabel) {
 			default:
 				continue;
 		}
-		if (written == 0) {
-			fprintf(stderr, "/etc/fstab should now be backed up\n");
-			break;
-		}
+		writepoint = written; /* after writing, record the location to read from in the next iteration */
 	}
 
-	/* next step is writing the ephemeral fstab to the actual fstab */
+	/* TODO: Now write in the efstab */
 	return(0);
 }
