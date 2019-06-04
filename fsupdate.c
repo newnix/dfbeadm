@@ -76,22 +76,20 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 	}
 
 	for (i = 0; i < fscount; i++) {
-		dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", snapfs->fstab.fs_spec, snapfs->fstab.fs_file, 
-				                                         snapfs->fstab.fs_vfstype, snapfs->fstab.fs_mntops,
-                                                 snapfs->fstab.fs_freq, snapfs->fstab.fs_passno);
+		dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].fstab.fs_file, 
+				                                         snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
+                                                 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
 	}
 
 	/* 
 	 * new funciton, specifically dumps current fstab into a file with a timestamp of when it was created
 	 * ideally will include the BE label in the future a swell, though that would require some extra parsing
 	 */
-	swapfstab("/etc/fstab", &efd, false);
-
-	setfstab(efstab);
-	printfs(getfstab());
-	/* this may be doable in a more clean manner, but it should work properly */
-	fprintf(stdout,"Creating backup fstab...\n");
 	fprintf(stdout,"Installing new fstab...\n");
+	swapfstab("/etc/fstab", &efd);
+
+	printfs(efstab);
+	/* this may be doable in a more clean manner, but it should work properly */
 	/* unlink(efstab); Do not unlink, as we can't be sure it's written properly now */
 	close(efd);
 	free(efstab);
@@ -165,6 +163,7 @@ printfs(const char *fstab) {
 	struct fstab *fsent;
 
 	fsent = NULL;
+	setfstab(fstab);
 	while ((fsent = getfsent()) != NULL) {
 		fprintf(stdout,"%s\t%s\t%s\t%s\t%s\t%d\t%d\n",
 		               fsent->fs_spec, fsent->fs_file, fsent->fs_vfstype,
@@ -179,7 +178,7 @@ printfs(const char *fstab) {
  * revisit to ensure this is working as intended
  */
 int
-swapfstab(const char *current, int *newfd, bool uselabel) {
+swapfstab(const char *current, int *newfd) {
 	/*
 	 * this function will open the old fstab, clean it out after dumpting contents to a new 
 	 * backup file, then write the contents of the ephemeral fstab into it
@@ -193,95 +192,41 @@ swapfstab(const char *current, int *newfd, bool uselabel) {
 	written = 0; writepoint = 0;
 
 	/* First ensure the fstab even exists, with no dynamic allocations, we can simply bail early */
-	if ((stat(current,&curfstab)) == 0) {
-		if ((cfd = open(current, O_RDWR|O_NONBLOCK)) <= 0) { 
-			fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s r/w, %s\n",__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
-			return(-1);
-		}
-		/* This call is failing for some reason, to the point where clang is warning code beyond this function is marked as non-reachable */
-		if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_NONBLOCK|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) <= 0) {
-			fprintf(stderr, "ERR: %s [%s:%u] %s: /etc/fstab.bak could not be created, verify file and user permissions are set properly!\n",__progname,__FILE__,__LINE__,__func__);
-			return(-2);
-		}
-	} else {
+	if ((stat(current,&curfstab)) != 0) {
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to stat %s (%s)\n",
 				__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
 		return(-1);
+	}
+	if ((cfd = open(current, O_RDWR)) <= 0) { 
+		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s r/w, %s\n",__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
+		return(-1);
+	}
+	/* This call is failing for some reason, to the point where clang is warning code beyond this function is marked as non-reachable */
+	if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) <= 0) {
+		fprintf(stderr, "ERR: %s [%s:%u] %s: /etc/fstab.bak could not be created, verify file and user permissions are set properly!\n",__progname,__FILE__,__LINE__,__func__);
+		return(-2);
 	}
 
 	/* read cfd into bfd, close bfd, rewind cfd, dump newfd into it */
 	for (;written < curfstab.st_size;) {
 		pread(cfd, &tmpbuf, PAGESIZE, writepoint);
-		/* these check errno for possible errors, may split into seprate functions later */
-		switch (errno) {
-			case EBADF:
-				/* given bad fd */
-				fprintf(stderr, "fd %d is not open for reading\n", cfd);
-				return(-3);
-			case EFAULT:
-				/* buffer pointer is outside allowed address space (should never happen) */
-				fprintf(stderr, "Something has gone horribly wrong, bailing out\n");
-				return(-3);
-			case EIO:
-				/* error encountered with the IO operations in the filesystem */
-				fprintf(stderr, "I/O error reading from fd %d\n", cfd);
-				return(-3);
-			case EINTR:
-				/* read was interrupted by a signal before data arrived */
-				fprintf(stderr, "Read was interrupted, no data recieved\n");
-				return(-3);
-			case EINVAL:
-				/* given a negative file descriptor, which should be impossible */
-				fprintf(stderr, "This should not be possible, %s, %d\n", __FILE__, __LINE__);
-				return(-3);
-			case EAGAIN:
-				/* this should not cause an issue */
-				continue;
-			default:
-				continue;
-		}
 		written += pwrite(bfd, &tmpbuf, PAGESIZE, writepoint);
-		switch (errno) {
-			case EBADF:
-				/* given bad fd */
-				fprintf(stderr, "fd %d is not open for reading\n", bfd);
-				return(-4);
-			case EPIPE:
-				/* given fd is a pipe that cannot be written to, should not be possible in this usecase */
-				fprintf(stderr, "This should not be possible, %s, %d\n", __FILE__, __LINE__);
-				return(-4);
-			case EFBIG:
-				/* file being written to exceeds size limits */
-				fprintf(stderr, "Unable to write to fd %d, size exceeded\n", bfd);
-				return(-4);
-			case EFAULT:
-				/* data being written is outside usable address space, should not be possible */
-				fprintf(stderr, "This should not be possible, %s, %d\n", __FILE__, __LINE__);
-				return(-4);
-			case EINVAL:
-				fprintf(stderr, "This should not be possible, %s, %d\n", __FILE__, __LINE__);
-				return(-4);
-			case ENOSPC:
-				fprintf(stderr, "The drive holding /etc has run out of space, bailing out\n");
-				return(-4);
-			case EDQUOT:
-				fprintf(stderr, "The filesystem holding /etc has reached its quota, bailing out\n");
-				return(-4);
-			case EIO:
-				fprintf(stderr, "I/O error writing to fd %d\n", bfd);
-				return(-4);
-			case EINTR:
-				fprintf(stderr, "Interrupted before writing any data\n");
-				return(-4);
-			case EAGAIN:
-				continue;
-			case EROFS:
-			default:
-				continue;
-		}
 		writepoint = written; /* after writing, record the location to read from in the next iteration */
 	}
+	/* Now we can close bfd, and dump newfd into cfd */
+	writepoint ^= writepoint; written ^= written;
+	close(bfd);
+	/* stat the efstab, reuising curfstab struct */
+	if ((fstat(*newfd,&curfstab)) != 0) {
+		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to stat new fstab fd %d (%s)\n",__progname,__FILE__,__LINE__,__func__,*newfd,strerror(errno));
+		return(-3);
+	}
+	for (;written < curfstab.st_size;) {
+		pread(*newfd, &tmpbuf, PAGESIZE, writepoint);
+		written += pwrite(cfd, &tmpbuf, PAGESIZE, writepoint);
+		writepoint = written;
+	}
 
-	/* TODO: Now write in the efstab */
+	close(cfd);
 	return(0);
 }

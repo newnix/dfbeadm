@@ -45,4 +45,4 @@ int deactivate(const char *label);
 int rmenv(const char *label);
 int rmsnap(const char *pfs);
 void printfs(const char *fstab);
-int swapfstab(const char *current, int *newfd, bool uselabel);
+int swapfstab(const char *current, int *newfd);
