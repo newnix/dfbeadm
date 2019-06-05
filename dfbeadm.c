@@ -88,7 +88,9 @@
 #define NOOPMASK 4
 #define RDEBUG 8
 
+extern char *__progname;
 extern char **environ;
+extern bool dbg;
 /*
  * TODO: Rework and possibly expand for more robust option parsing
  * ----------------------
@@ -99,7 +101,7 @@ extern char **environ;
  * | | | | | | | \- verbosity flag
  * | | | | | | \- verbosity flag
  * | | | | | \- dry run flag
- * | | | | \- runtime debug printouts
+ * | | | | \- reserved
  * | | | \- reserved
  * | | \- reserved 
  * | \- reserved
@@ -110,6 +112,8 @@ static void usage(void);
 /* This is where the actual logic processing should take place */
 int cook(int *flags, char **args);
 
+bool dbg = false; /* Default to not adding runtime traces */
+
 /* 
  * TODO: Remove all but the most rudimentary logic from this function, instead 
  * pass the important data down to cook(), which will then determine how best to proceed
@@ -118,7 +122,6 @@ int
 main(int argc, char **argv) { 
 	/* a bitmap flag value to pass to other functions */
 	uint8_t exflags; 
-	/* obviously, this is where we get some basic data from the user */
 	int ch, ret;
 
 	exflags = 0;
@@ -142,7 +145,7 @@ main(int argc, char **argv) {
 				deactivate(optarg);
 				break;
 			case 'D':
-				exflags |= RDEBUG;
+				dbg = true;
 				break;
 			case 'h':
 				usage();

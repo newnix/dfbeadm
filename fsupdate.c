@@ -49,6 +49,8 @@
 #endif
 
 extern char *__progname;
+extern char **environ;
+extern bool dbg;
 /* 
  * TODO: This really should just be "activate()" automatically called by create()
  * Special activation function, for use by the create() chain of functions
@@ -58,42 +60,52 @@ extern char *__progname;
 int
 autoactivate(bedata *snapfs, int fscount, const char *label) {
 	/* should probably have an int in there to ensure proper iteration */
-	int i, efd;
+	int i, efd, retc;
 	char *efstab;
+
+	i = efd = retc = 0;
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with snapfs = %p, fscount = %d, label = %s\n",
+				__progname,__FILE__,__LINE__,__func__,(void *)snapfs,fscount,label);
+	}
 	
 	if ((efstab = calloc((size_t)512, sizeof(char))) == NULL) { 
-		fprintf(stderr,"Unable to allocate buffer for *efstab!\n");
-		return(-1);
-	}
+		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to allocate buffer for *efstab!\n",__progname,__FILE__,__LINE__,__func__);
+		retc = -1;
+	} else {
+		/* generate the name of the ephemeral fstab file */
+		snprintf(efstab, (size_t)512, "/tmp/.fstab.%s_%u", label, getpid());
 
-	/* generate the name of the ephemeral fstab file */
-	snprintf(efstab, (size_t)512, "/tmp/.fstab.%s_%u", label, getpid());
+		if ((efd = open(efstab, O_RDWR|O_CREAT|O_NONBLOCK|O_APPEND)) <= 0) { 
+			fprintf(stderr, "ERR: %s [%s:%u] %s: Unable to open %s for writing!\n",__progname,__FILE__,__LINE__,__func__,efstab);
+			free(efstab);
+			retc = -2;
+		} else {
+			for (i = 0; i < fscount; i++) {
+				dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].fstab.fs_file, 
+																										 snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
+																										 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
+			}
 
-	if ((efd = open(efstab, O_RDWR|O_CREAT|O_NONBLOCK|O_APPEND)) <= 0) { 
-		fprintf(stderr, "ERR: %s [%s:%u] %s: Unable to open %s for writing!\n",__progname,__FILE__,__LINE__,__func__,efstab);
+			/* 
+			 * new funciton, specifically dumps current fstab into a file with a timestamp of when it was created
+			 * ideally will include the BE label in the future a swell, though that would require some extra parsing
+			 */
+			fprintf(stdout,"Installing new fstab...\n");
+			swapfstab("/etc/fstab", &efd);
+
+			printfs(efstab);
+			/* this may be doable in a more clean manner, but it should work properly */
+			/* unlink(efstab); Do not unlink, as we can't be sure it's written properly now */
+			close(efd);
+		}
 		free(efstab);
-		return(-1);
 	}
-
-	for (i = 0; i < fscount; i++) {
-		dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].fstab.fs_file, 
-				                                         snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
-                                                 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
 	}
-
-	/* 
-	 * new funciton, specifically dumps current fstab into a file with a timestamp of when it was created
-	 * ideally will include the BE label in the future a swell, though that would require some extra parsing
-	 */
-	fprintf(stdout,"Installing new fstab...\n");
-	swapfstab("/etc/fstab", &efd);
-
-	printfs(efstab);
-	/* this may be doable in a more clean manner, but it should work properly */
-	/* unlink(efstab); Do not unlink, as we can't be sure it's written properly now */
-	close(efd);
-	free(efstab);
-	return(0);
+	return(retc);
 }
 
 /*
@@ -108,8 +120,15 @@ activate(const char *label) {
 	 * assuming there was a label. If no label exists for the existing fstab, we'll simply call it 
 	 * fstab.bak
 	 */
+	int retc;
 	char *efstab;
 	FILE *efd;
+
+	retc = 0;
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with label = %s\n",__progname,__FILE__,__LINE__,__func__,label);
+	}
 
 	if ((efstab = calloc((size_t)512, sizeof(char))) == NULL) {
 		fprintf(stderr,"Error Allocating Ephemeral fstab\n");
@@ -122,9 +141,12 @@ activate(const char *label) {
 		err(errno, "%s: %s: ", __progname, efstab);
 	}
 
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
+	}
 	fclose(efd);
 	free(efstab);
-	return(0);
+	return(retc);
 }
 
 /*
@@ -137,7 +159,15 @@ deactivate(const char *label) {
 	 * naming convention described above is fstab.label, making it trivial to swap boot environments 
 	 * This function likely only needs to be called when destroying a boot environment
 	 */
-	return(0);
+	int retc;
+	retc = 0;
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with label = %s\n",__progname,__FILE__,__LINE__,__func__,label);
+	}
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
+	}
+	return(retc);
 }
 
 /*
@@ -146,7 +176,15 @@ deactivate(const char *label) {
 int
 rmenv(const char *label) { 
 	/* TODO: Implement PFS deletion for the given label */
-	return(0);
+	int retc;
+	retc = 0;
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with label = %s\n",__progname,__FILE__,__LINE__,__func__,label);
+	}
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
+	}
+	return(retc);
 }
 
 /*
@@ -155,12 +193,24 @@ rmenv(const char *label) {
 int
 rmsnap(const char *pfs) { 
 	/* TODO: Implement PFS deletion for the given label */
-	return(0);
+	int retc;
+	retc = 0;
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with pfs = %s\n",__progname,__FILE__,__LINE__,__func__,pfs);
+	}
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
+	}
+	return(retc);
 }
 
 void
 printfs(const char *fstab) { 
 	struct fstab *fsent;
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fstab = %s\n",__progname,__FILE__,__LINE__,__func__,fstab);
+	}
 
 	fsent = NULL;
 	setfstab(fstab);
@@ -171,11 +221,14 @@ printfs(const char *fstab) {
 									 fsent->fs_passno);
 	}
 	endfsent();
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning to caller\n",__progname,__FILE__,__LINE__,__func__);
+	}
 }
 
 /* 
- * XXX: Clang states that some of the code here will never be reached, 
- * revisit to ensure this is working as intended
+ * TODO: Verify proper control logic
  */
 int
 swapfstab(const char *current, int *newfd) {
@@ -183,32 +236,33 @@ swapfstab(const char *current, int *newfd) {
 	 * this function will open the old fstab, clean it out after dumpting contents to a new 
 	 * backup file, then write the contents of the ephemeral fstab into it
 	 */
-	int bfd, cfd;
+	int bfd, cfd, retc;
 	struct stat curfstab;
 	ssize_t written;
 	off_t writepoint;
 	char tmpbuf[PAGESIZE]; /* work with a page of data at a time, defaulting to 4096 if not otherwise defined */
 
 	written = 0; writepoint = 0;
+	bfd = cfd = retc = 0;
 
 	/* First ensure the fstab even exists, with no dynamic allocations, we can simply bail early */
 	if ((stat(current,&curfstab)) != 0) {
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to stat %s (%s)\n",
 				__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
-		return(-1);
+		retc = -1;
 	}
 	if ((cfd = open(current, O_RDWR)) <= 0) { 
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s r/w, %s\n",__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
-		return(-1);
+		retc = -1;
 	}
 	/* This call is failing for some reason, to the point where clang is warning code beyond this function is marked as non-reachable */
-	if ((bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) <= 0) {
+	if (retc == 0 && (bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) <= 0) {
 		fprintf(stderr, "ERR: %s [%s:%u] %s: /etc/fstab.bak could not be created, verify file and user permissions are set properly!\n",__progname,__FILE__,__LINE__,__func__);
-		return(-2);
+		retc = -2;
 	}
 
 	/* read cfd into bfd, close bfd, rewind cfd, dump newfd into it */
-	for (;written < curfstab.st_size;) {
+	for (;retc == 0 && written < curfstab.st_size;) {
 		pread(cfd, &tmpbuf, PAGESIZE, writepoint);
 		written += pwrite(bfd, &tmpbuf, PAGESIZE, writepoint);
 		writepoint = written; /* after writing, record the location to read from in the next iteration */
@@ -219,14 +273,20 @@ swapfstab(const char *current, int *newfd) {
 	/* stat the efstab, reuising curfstab struct */
 	if ((fstat(*newfd,&curfstab)) != 0) {
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to stat new fstab fd %d (%s)\n",__progname,__FILE__,__LINE__,__func__,*newfd,strerror(errno));
-		return(-3);
+		retc = -3;
 	}
 	for (;written < curfstab.st_size;) {
 		pread(*newfd, &tmpbuf, PAGESIZE, writepoint);
 		written += pwrite(cfd, &tmpbuf, PAGESIZE, writepoint);
 		writepoint = written;
+		if (dbg) {
+			fprintf(stderr,"DBG: %s [%s:%u] %s: writepoint = %lu, filesize = %lu\n",__progname,__FILE__,__LINE__,__func__,writepoint,curfstab.st_size);
+		}
 	}
 
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
+	}
 	close(cfd);
 	return(0);
 }
