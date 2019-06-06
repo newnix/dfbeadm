@@ -55,18 +55,22 @@ extern bool dbg;
 int
 create(const char *label) { 
 	/* since we can't rely on the VFS layer for all of our fstab data, we need to be sure what exists */
-	int i, fstabcount, vfscount;
+	int i, fstabcount, retc, vfscount;
 	struct fstab *fsptr;
 	struct statfs *vfsptr;
 	bedata *befs;
 	
-	fstabcount = vfscount = 0;
+	i = retc = fstabcount = vfscount = 0;
 	fsptr = NULL;
 	vfsptr = NULL;
 
-	if ((vfscount = getfsstat(vfsptr, 0, MNT_WAIT)) == 0) { 
-		fprintf(stderr, "Something's wrong, no filesystems found\n");
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entered with label = %s\n",__progname,__FILE__,__LINE__,__func__,label);
 	}
+	if ((vfscount = getfsstat(vfsptr, 0, MNT_WAIT)) == 0) { 
+		fprintf(stderr, "ERR: %s [%s:%u] %s: Something's wrong, no filesystems found\n",__progname,__FILE__,__LINE__,__func__);
+	}
+	/* Simple loop to get filesystem count from /etc/fstab */
 	while ((fsptr = getfsent()) != NULL) { 
 		fstabcount++;
 	}
@@ -78,13 +82,13 @@ create(const char *label) {
 		fprintf(stderr, "Filesystem counts differ! May have unintended side-effects!\n"
 		                "fstab count: %d\nvfs count: %d\n",fstabcount, vfscount);
 	} else {
-		fprintf(stdout, "VFS Layer and FSTAB(5) are in agreement, generating list of boot environment targets...\n");
+		fprintf(stdout, "INF: %s [%s:%u] %s: VFS Layer and FSTAB(5) are in agreement, generating list of boot environment targets...\n",__progname,__FILE__,__LINE__,__func__);
 	}
 
 	/* now that we have an idea what we're working with, let's go about cloning this data */
 	if ((befs = calloc((size_t)fstabcount, sizeof(bedata))) == NULL) {
 		fprintf(stderr,"Could not allocate initial buffer!\n");
-		return(2); /* probably OOM */
+		retc = 2;
 	}
 
 	/* now allocate space for the members */
@@ -128,7 +132,10 @@ create(const char *label) {
 		free(befs[i].fstab.fs_type);
 	}
 	free(befs);
-	return(0);
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
+	}
+	return(retc);
 }
 
 /* 
