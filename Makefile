@@ -19,8 +19,9 @@ LIBS = -L. -L/usr/lib
 DBG = gdb 
 DBGFLAGS = -g${DBG}
 
-CFLAGS = -Wall -Wextra -Weverything -pedantic -std=c99 -Os\
+CFLAGS = -Wall -Wextra -Weverything -pedantic -std=c99 -Oz\
 				 -march=native -mtune=native -z now -z combreloc\
+				 -Wparentheses -ffast-math \
 				 -Wl,${LDFLAGS} -pipe -fstrict-aliasing -fuse-ld=${LD}
 
 LDFLAGS = --gc-sections,--icf=all,--print-icf-sections,--print-gc-sections

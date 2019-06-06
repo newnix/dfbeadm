@@ -239,9 +239,11 @@ swapfstab(const char *current, int *newfd) {
 	int bfd, cfd, retc;
 	struct stat curfstab;
 	ssize_t written;
+	size_t readsize;
 	off_t writepoint;
 	char tmpbuf[PAGESIZE]; /* work with a page of data at a time, defaulting to 4096 if not otherwise defined */
 
+	readsize = 0;
 	written = 0; writepoint = 0;
 	bfd = cfd = retc = 0;
 
@@ -251,6 +253,7 @@ swapfstab(const char *current, int *newfd) {
 				__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
 		retc = -1;
 	}
+	readsize = (curfstab.st_size > PAGESIZE) ? PAGESIZE : curfstab.st_size;
 	if ((cfd = open(current, O_RDWR)) <= 0) { 
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s r/w, %s\n",__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
 		retc = -1;
@@ -263,12 +266,13 @@ swapfstab(const char *current, int *newfd) {
 
 	/* read cfd into bfd, close bfd, rewind cfd, dump newfd into it */
 	for (;retc == 0 && written < curfstab.st_size;) {
-		pread(cfd, &tmpbuf, PAGESIZE, writepoint);
-		written += pwrite(bfd, &tmpbuf, PAGESIZE, writepoint);
+		pread(cfd, &tmpbuf, readsize, writepoint);
+		written += pwrite(bfd, &tmpbuf, readsize, writepoint);
 		writepoint = written; /* after writing, record the location to read from in the next iteration */
 	}
-	/* Now we can close bfd, and dump newfd into cfd */
+	/* Detect whether or not we should read in a full PAGE */
 	writepoint ^= writepoint; written ^= written;
+	/* Now we can close bfd, and dump newfd into cfd */
 	close(bfd);
 	/* stat the efstab, reuising curfstab struct */
 	if ((fstat(*newfd,&curfstab)) != 0) {
@@ -276,8 +280,8 @@ swapfstab(const char *current, int *newfd) {
 		retc = -3;
 	}
 	for (;written < curfstab.st_size;) {
-		pread(*newfd, &tmpbuf, PAGESIZE, writepoint);
-		written += pwrite(cfd, &tmpbuf, PAGESIZE, writepoint);
+		pread(*newfd, &tmpbuf, readsize, writepoint);
+		written += pwrite(cfd, &tmpbuf, readsize, writepoint);
 		writepoint = written;
 		if (dbg) {
 			fprintf(stderr,"DBG: %s [%s:%u] %s: writepoint = %lu, filesize = %lu\n",__progname,__FILE__,__LINE__,__func__,writepoint,curfstab.st_size);
