@@ -94,9 +94,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 			 */
 			fprintf(stdout,"Installing new fstab...\n");
 			swapfstab("/etc/fstab", &efd);
-
 			printfs(efstab);
-			/* this may be doable in a more clean manner, but it should work properly */
 			/* unlink(efstab); Do not unlink, as we can't be sure it's written properly now */
 			close(efd);
 		}
@@ -247,6 +245,9 @@ swapfstab(const char *current, int *newfd) {
 	written = 0; writepoint = 0;
 	bfd = cfd = retc = 0;
 
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with current = %s, newfd = %d\n",__progname,__FILE__,__LINE__,__func__,current,*newfd);
+	}
 	/* First ensure the fstab even exists, with no dynamic allocations, we can simply bail early */
 	if ((stat(current,&curfstab)) != 0) {
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to stat %s (%s)\n",
@@ -292,5 +293,5 @@ swapfstab(const char *current, int *newfd) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
 	}
 	close(cfd);
-	return(0);
+	return(retc);
 }

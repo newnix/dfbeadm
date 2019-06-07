@@ -18,8 +18,9 @@
 /* struct to hold the relevant data to rebuild the fstab */
 struct bootenv_data { 
 	struct fstab fstab; /* this should be pretty obvious, but this is each PFS's description in the fstab */
-	char curlabel[NAME_MAX]; /* this may actually not be necessary, bubt it's the current label of the PFS */
 	struct hammer2_ioc_pfs snapshot; /* this is the PFS we'll be creating a snapshot with */
+	char curlabel[NAME_MAX]; /* this may actually not be necessary, bubt it's the current label of the PFS */
+	int mountfd;
 	bool snap;
 } __packed;
 

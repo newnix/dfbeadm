@@ -38,3 +38,4 @@
 
 int snapfs(bedata *fstarget, int fscount);
 void xtractLabel(const char *newfs, char *label);
+int openfs(const char *mountpoint, int *fsfd);

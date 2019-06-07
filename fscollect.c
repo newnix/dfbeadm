@@ -148,6 +148,11 @@ mktargets(bedata *target, int fscount, const char *label) {
 	int i;
 	struct fstab *current;
 
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entered with target = %p, fscount = %d, label = %s\n",
+				__progname,__FILE__,__LINE__,__func__,(void *)target,fscount,label);
+	}
+
 	/* 
 	 * now that we have the number of existing filesystems and the 
 	 * bedata struct to fill in, we can go about updating the information
@@ -181,6 +186,9 @@ mktargets(bedata *target, int fscount, const char *label) {
 	 * looping is handled internally
 	 */
 	snapfs(target, fscount);
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning to caller\n",__progname,__FILE__,__LINE__,__func__);
+	}
 }
 
 /* 
@@ -190,11 +198,14 @@ mktargets(bedata *target, int fscount, const char *label) {
  */
 int
 relabel (bedata *fs, const char *label) {
-	char *found;
-	int i;
+	char *found, fsbuf[NAME_MAX];
+	int i, retc;
 
-	i = 0;
+	i = retc = 0;
 	found = NULL;
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fs = %p, label = %s\n",__progname,__FILE__,__LINE__,__func__,(void *)fs,label);
+	}
 	/* 
 	 * this function, along with ish2(), will almost certainly need significant rewriting
 	 * as the current mean sof detecting a NULLFS mount vs a HAMMER2 mount are 
@@ -207,7 +218,7 @@ relabel (bedata *fs, const char *label) {
 		fprintf(stderr, "%s [%s:%u] %s: Are you certain %s mounted %s is a HAMMER2 filesystem?\n", 
 				__progname, __FILE__, __LINE__, __func__, fs->fstab.fs_spec, fs->fstab.fs_file);
 		/* this can throw false positives if there's no existing snapshot/PFS mountpoints */
-		return(-1);
+		retc = -1;
 	} else { 
 	/* this is incorrect */
 		for (i ^= i; *found != 0 && i < NAME_MAX; found++) { 
@@ -215,15 +226,15 @@ relabel (bedata *fs, const char *label) {
 			i++;
 		} 
 		if ((NAME_MAX - 1)< ((unsigned int)i + strlen(label))) {
-			fprintf(stderr,"Given name of %s is too long!\n", label);
+			fprintf(stderr,"ERR: %s [%s:%u] %s: Given name of %s is too long!\n", __progname,__FILE__,__LINE__,__func__,label);
 		} else {
-			snprintf(fs->fstab.fs_spec, (NAME_MAX - 1), "%s%c%s", fs->fstab.fs_spec, BESEP, label);
+			snprintf(fsbuf, (NAME_MAX -1), "%s%c%s",fs->fstab.fs_spec,BESEP,label);
+			memset(fs->fstab.fs_spec,0,(size_t)NAME_MAX);
 		}
 		fs->curlabel[i] = 0; /* ensure NULL termination */
-//		fprintf(stderr, "fs->curlabel: %s\n", fs->curlabel);
-//		fprintf(stderr, "BEFS: %s\n", fs->fstab.fs_spec);
 	}
-
-	return(0);
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n", __progname,__FILE__,__LINE__,__func__,retc);
+	}
+	return(retc);
 }
-
