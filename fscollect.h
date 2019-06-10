@@ -40,3 +40,4 @@
 int create(const char *label);
 void mktargets(bedata *target, int fscount, const char *label);
 int relabel(bedata *fs, const char *label);
+int openfs(const char *mountpoint, int *fsfd);

@@ -85,8 +85,9 @@
 #include "snapfs.h"
 #endif
 
-#define NOOPMASK 4
-#define RDEBUG 8
+#define NOOPMASK 0x04
+#define CREATEBE 0x08
+#define ACTIVATE 0x10
 
 extern char *__progname;
 extern char **environ;
@@ -101,16 +102,16 @@ extern bool dbg;
  * | | | | | | | \- verbosity flag
  * | | | | | | \- verbosity flag
  * | | | | | \- dry run flag
- * | | | | \- reserved
- * | | | \- reserved
- * | | \- reserved 
+ * | | | | \- create
+ * | | | \- activate
+ * | | \- delete 
  * | \- reserved
  * \- reserved
  */
 
 static void usage(void);
 /* This is where the actual logic processing should take place */
-int cook(int *flags, char **args);
+int cook(uint8_t *flags, char **args);
 
 bool dbg = false; /* Default to not adding runtime traces */
 
@@ -123,6 +124,7 @@ main(int argc, char **argv) {
 	/* a bitmap flag value to pass to other functions */
 	uint8_t exflags; 
 	int ch, ret;
+	char belabel[MNAMELEN];
 
 	exflags = 0;
 	ret = ch = 0;
@@ -132,10 +134,12 @@ main(int argc, char **argv) {
 	while((ch = getopt(argc,argv,"a:c:d:hlnrD")) != -1) { 
 		switch(ch) { 
 			case 'a': 
-				ret = activate(optarg);
+				exflags |= ACTIVATE;
+				strlcpy(belabel,optarg,(MNAMELEN-1));
 				break;
 			case 'c':
-				ret = create(optarg);
+				exflags |= CREATEBE;
+				strlcpy(belabel,optarg,(MNAMELEN-1));
 				break;
 			/*
 			 * TODO: Add a config file to read, so users can specify which filesystems they actually want managed
@@ -164,11 +168,15 @@ main(int argc, char **argv) {
 				usage();
 		}
 	}
+	/* Pass all the serious logic into cook() */
+	argc -= optind;
+	argv += optind;
+	ret = cook(&exflags, argv);
 	return(ret);
 }
 
 int
-cook(int *flags, char **args) {
+cook(uint8_t *flags, char **args) {
 	int retc;
 
 	/* Placeholder logic to quelch compiler warnings */

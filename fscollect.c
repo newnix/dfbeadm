@@ -31,10 +31,14 @@
  * DAMAGE.
  */
 
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifndef DFBEADM_FSCOLLECT_H
 #include "fscollect.h"
@@ -139,6 +143,9 @@ create(const char *label) {
 }
 
 /* 
+ * TODO: Have this function call openfs() prior to exit. 
+ * It'll cause a slightly deeper call stack than I'd like, 
+ * but fits better logically.
  * Creates a buffer of targets to be handed off to snapfs()
  * This function should be called directly from create(), and provided
  * with a buffer of currently existing filesystems
@@ -174,6 +181,7 @@ mktargets(bedata *target, int fscount, const char *label) {
 		/* now do some additional work in the same loop */
 		if (ish2(current->fs_file)) { 
 			target[i].snap = true;
+			openfs(target[i].fstab.fs_spec,&target[i].mountfd);
 			if (relabel(&target[i], label) != 0) { 
 				fprintf(stderr,"%s [%s:%u] %s: Unable to write label %s to %s!\n",__progname,__FILE__,__LINE__,__func__,label,target[i].fstab.fs_file);
 			}
@@ -237,4 +245,25 @@ relabel (bedata *fs, const char *label) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n", __progname,__FILE__,__LINE__,__func__,retc);
 	}
 	return(retc);
+}
+
+/* 
+ * XXX: Ensure that this is properly migrated from snapfs.c
+ */
+int
+openfs(const char *mountpoint, int *fsfd) {
+	int retc;
+	retc = 0;
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with mountpoint = %s\n",__progname,__FILE__,__LINE__,__func__,mountpoint);
+	}
+	if ((retc = open(mountpoint,O_RDONLY)) > 0) {
+		*fsfd = retc;
+		retc ^= retc;
+	} else {
+		fprintf(stderr,"ERR: %s [%s:%u] %s: Error opening %s: %s\n",__progname,__FILE__,__LINE__,__func__,mountpoint,strerror(errno));
+	}
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Opened fd %d for %s, returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,*fsfd,mountpoint,retc);
+	}
 }

@@ -3,6 +3,7 @@
 #define PFSDELIM '@'
 #define BESEP ':'
 #define TMAX 18
+#define NOTIMP(a) fprintf(stderr,"WRN: %s [%s:%u] %s: %s is not currently implemented!\n",__progname,__FILE__,__LINE__,__func__,a)
 
 /* necessary inclusions for vfs layer data */
 #include <sys/mount.h>

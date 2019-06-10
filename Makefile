@@ -21,7 +21,9 @@ DBGFLAGS = -g${DBG}
 
 CFLAGS = -Wall -Wextra -Weverything -pedantic -std=c99 -Oz\
 				 -march=native -mtune=native -z now -z combreloc\
-				 -Wparentheses -ffast-math \
+				 -Wparentheses -ffast-math -z relro -pipe -fvectorize -fstack-protector \
+				 -fstrict-enums -fstrict-return -fstack-protector-strong -fsanitize-cfi-cross-dso \
+				 -fmerge-all-constants -fstack-protector-all -Qn \
 				 -Wl,${LDFLAGS} -pipe -fstrict-aliasing -fuse-ld=${LD}
 
 LDFLAGS = --gc-sections,--icf=all,--print-icf-sections,--print-gc-sections
