@@ -51,6 +51,7 @@
 extern char *__progname;
 extern char **environ;
 extern bool dbg;
+extern bool noop;
 /* 
  * TODO: This really should just be "activate()" automatically called by create()
  * Special activation function, for use by the create() chain of functions
@@ -77,7 +78,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 		/* generate the name of the ephemeral fstab file */
 		snprintf(efstab, (size_t)512, "/tmp/.fstab.%s_%u", label, getpid());
 
-		if ((efd = open(efstab, O_RDWR|O_CREAT|O_NONBLOCK|O_APPEND)) <= 0) { 
+		if ((efd = open(efstab, O_RDWR|O_CREAT|O_NONBLOCK|O_APPEND,S_IRUSR|S_IRGRP|S_IWUSR|S_IROTH)) <= 0) { 
 			fprintf(stderr, "ERR: %s [%s:%u] %s: Unable to open %s for writing!\n",__progname,__FILE__,__LINE__,__func__,efstab);
 			free(efstab);
 			retc = -2;
@@ -254,24 +255,23 @@ swapfstab(const char *current, int *newfd) {
 				__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
 		retc = -1;
 	}
+	/* Detect whether or not we should read in a full PAGE */
 	readsize = (curfstab.st_size > PAGESIZE) ? PAGESIZE : curfstab.st_size;
 	if ((cfd = open(current, O_RDWR)) <= 0) { 
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s r/w, %s\n",__progname,__FILE__,__LINE__,__func__,current,strerror(errno));
 		retc = -1;
 	}
-	/* This call is failing for some reason, to the point where clang is warning code beyond this function is marked as non-reachable */
 	if (retc == 0 && (bfd = open("/etc/fstab.bak", O_TRUNC|O_CREAT|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) <= 0) {
 		fprintf(stderr, "ERR: %s [%s:%u] %s: /etc/fstab.bak could not be created, verify file and user permissions are set properly!\n",__progname,__FILE__,__LINE__,__func__);
 		retc = -2;
 	}
 
 	/* read cfd into bfd, close bfd, rewind cfd, dump newfd into it */
-	for (;retc == 0 && written < curfstab.st_size;) {
+	for (;!noop && retc == 0 && written < curfstab.st_size;) {
 		pread(cfd, &tmpbuf, readsize, writepoint);
 		written += pwrite(bfd, &tmpbuf, readsize, writepoint);
 		writepoint = written; /* after writing, record the location to read from in the next iteration */
 	}
-	/* Detect whether or not we should read in a full PAGE */
 	writepoint ^= writepoint; written ^= written;
 	/* Now we can close bfd, and dump newfd into cfd */
 	close(bfd);
@@ -280,7 +280,7 @@ swapfstab(const char *current, int *newfd) {
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to stat new fstab fd %d (%s)\n",__progname,__FILE__,__LINE__,__func__,*newfd,strerror(errno));
 		retc = -3;
 	}
-	for (;written < curfstab.st_size;) {
+	for (;!noop && written < curfstab.st_size;) {
 		pread(*newfd, &tmpbuf, readsize, writepoint);
 		written += pwrite(cfd, &tmpbuf, readsize, writepoint);
 		writepoint = written;

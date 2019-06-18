@@ -98,27 +98,27 @@ create(const char *label) {
 	/* now allocate space for the members */
 	for (i = 0; i < fstabcount; i++) {
 		if ((befs[i].fstab.fs_spec = calloc(MNAMELEN, 1)) == NULL) {
-			fprintf(stderr, "Could not allocate buffer\n");
+			fprintf(stderr, "%s [%s:%u] %s: Could not allocate buffer\n",__progname,__FILE__,__LINE__,__func__);
 			free(befs);
 			return(2);
 		}
 		if ((befs[i].fstab.fs_file = calloc(MNAMELEN, 1)) == NULL) {
-			fprintf(stderr, "Could not allocate buffer\n");
+			fprintf(stderr, "%s [%s:%u] %s: Could not allocate buffer\n",__progname,__FILE__,__LINE__,__func__);
 			free(befs);
 			return(2);
 		}
 		if ((befs[i].fstab.fs_vfstype = calloc(MNAMELEN, 1)) == NULL) {
-			fprintf(stderr, "Could not allocate buffer\n");
+			fprintf(stderr, "%s [%s:%u] %s: Could not allocate buffer\n",__progname,__FILE__,__LINE__,__func__);
 			free(befs);
 			return(2);
 		}
 		if ((befs[i].fstab.fs_mntops = calloc(MNAMELEN, 1)) == NULL) {
-			fprintf(stderr, "Could not allocate buffer\n");
+			fprintf(stderr, "%s [%s:%u] %s: Could not allocate buffer\n",__progname,__FILE__,__LINE__,__func__);
 			free(befs);
 			return(2);
 		}
 		if ((befs[i].fstab.fs_type = calloc(MNAMELEN, 1)) == NULL) {
-			fprintf(stderr, "Could not allocate buffer\n");
+			fprintf(stderr, "%s [%s:%u] %s: Could not allocate buffer\n",__progname,__FILE__,__LINE__,__func__);
 			free(befs);
 			return(2);
 		}
@@ -181,7 +181,7 @@ mktargets(bedata *target, int fscount, const char *label) {
 		/* now do some additional work in the same loop */
 		if (ish2(current->fs_file)) { 
 			target[i].snap = true;
-			openfs(target[i].fstab.fs_spec,&target[i].mountfd);
+			openfs(target[i].fstab.fs_file,&target[i].mountfd);
 			if (relabel(&target[i], label) != 0) { 
 				fprintf(stderr,"%s [%s:%u] %s: Unable to write label %s to %s!\n",__progname,__FILE__,__LINE__,__func__,label,target[i].fstab.fs_file);
 			}
@@ -205,7 +205,7 @@ mktargets(bedata *target, int fscount, const char *label) {
  * return values yet
  */
 int
-relabel (bedata *fs, const char *label) {
+relabel(bedata *fs, const char *label) {
 	char *found, fsbuf[NAME_MAX];
 	int i, retc;
 
@@ -215,7 +215,7 @@ relabel (bedata *fs, const char *label) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fs = %p, label = %s\n",__progname,__FILE__,__LINE__,__func__,(void *)fs,label);
 	}
 	/* 
-	 * this function, along with ish2(), will almost certainly need significant rewriting
+	 * XXX: this function, along with ish2(), will almost certainly need significant rewriting
 	 * as the current mean sof detecting a NULLFS mount vs a HAMMER2 mount are 
 	 * ill-defined at this point. It's definitely possible to fail silently, but that shouldn't be 
 	 * necessary. 

@@ -92,6 +92,7 @@
 extern char *__progname;
 extern char **environ;
 extern bool dbg;
+extern bool noop;
 /*
  * TODO: Rework and possibly expand for more robust option parsing
  * ----------------------
@@ -111,9 +112,10 @@ extern bool dbg;
 
 static void usage(void);
 /* This is where the actual logic processing should take place */
-int cook(uint8_t *flags, char **args);
+int cook(uint8_t *flags, char *bestring);
 
 bool dbg = false; /* Default to not adding runtime traces */
+bool noop = false;
 
 /* 
  * TODO: Remove all but the most rudimentary logic from this function, instead 
@@ -163,6 +165,7 @@ main(int argc, char **argv) {
 				 * could happen, especially with increased verbosity
 				 */
 				exflags |= NOOPMASK;
+				noop = true;
 				break;
 			default:
 				usage();
@@ -171,19 +174,33 @@ main(int argc, char **argv) {
 	/* Pass all the serious logic into cook() */
 	argc -= optind;
 	argv += optind;
-	ret = cook(&exflags, argv);
+	ret = cook(&exflags, belabel);
 	return(ret);
 }
 
 int
-cook(uint8_t *flags, char **args) {
+cook(uint8_t *flags, char *bestring) {
 	int retc;
 
 	/* Placeholder logic to quelch compiler warnings */
-	if ((flags != NULL) && (args != NULL)) {
+	if ((flags != NULL) && (bestring != NULL)) {
 		retc = 0;
 	} else {
 		retc = 1;
+	}
+	switch(*flags) {
+		case(ACTIVATE):
+			retc = activate(bestring);
+			break;
+		case(ACTIVATE|NOOPMASK):
+			retc = activate(bestring);
+			break;
+		case(CREATEBE|NOOPMASK):
+			retc = create(bestring);
+			break;
+		default:
+			usage();
+			break;
 	}
 
 	return(retc);
