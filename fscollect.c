@@ -222,22 +222,27 @@ relabel(bedata *fs, const char *label) {
 	 */
 
 	/* simply check for the existence of a boot environment */
-	if ((found = strchr(fs->fstab.fs_spec, PFSDELIM)) == NULL) {
-		fprintf(stderr, "%s [%s:%u] %s: Are you certain %s mounted %s is a HAMMER2 filesystem?\n", 
-				__progname, __FILE__, __LINE__, __func__, fs->fstab.fs_spec, fs->fstab.fs_file);
-		/* this can throw false positives if there's no existing snapshot/PFS mountpoints */
-		retc = -1;
+	if ((found = strchr(fs->fstab.fs_spec, BESEP)) == NULL) {
+		fprintf(stderr,"INF: %s [%s:%u] %s: No existing boot environment found for %s\n",
+				__progname,__FILE__,__LINE__,__func__,fs->fstab.fs_spec);
+		retc = -1; /* TODO: Determine better signifier for not needing to relabel the pfs */
 	} else { 
 	/* this is incorrect */
 		for (i ^= i; *found != 0 && i < NAME_MAX; found++) { 
-			fs->curlabel[i] = *found;
+			fs->curlabel[i] = *found; /* copy the found label one character at a time into fs->curlabel */
 			i++;
+			/* XXX: once this is found, we need to clear out all data beyond the first instance of BESEP */
 		} 
+		/* see if the label is too long to fit in the allocated space */
 		if ((NAME_MAX - 1)< ((unsigned int)i + strlen(label))) {
 			fprintf(stderr,"ERR: %s [%s:%u] %s: Given name of %s is too long!\n", __progname,__FILE__,__LINE__,__func__,label);
 		} else {
+			/* write the new file spec into *fsbuf */
 			snprintf(fsbuf, (NAME_MAX -1), "%s%c%s",fs->fstab.fs_spec,BESEP,label);
-			memset(fs->fstab.fs_spec,0,(size_t)NAME_MAX);
+			if (dbg) {
+				fprintf(stderr,"DBG: %s [%s:%u] %s: Generated new label of (fsbuf)=%s from (fs->fstab.fs_spec)=%s\n",__progname,__FILE__,__LINE__,__func__,fsbuf,fs->fstab.fs_spec);
+			}
+			memset(fs->fstab.fs_spec,0,(size_t)NAME_MAX); /* clear out the current fstab block device entry */
 		}
 		fs->curlabel[i] = 0; /* ensure NULL termination */
 	}
