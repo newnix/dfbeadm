@@ -271,4 +271,5 @@ openfs(const char *mountpoint, int *fsfd) {
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Opened fd %d for %s, returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,*fsfd,mountpoint,retc);
 	}
+	return(retc);
 }

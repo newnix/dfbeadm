@@ -85,7 +85,6 @@
 #include "snapfs.h"
 #endif
 
-#define NOOPMASK 0x04
 #define CREATEBE 0x08
 #define ACTIVATE 0x10
 
@@ -102,7 +101,7 @@ extern bool noop;
  * | | | | | | | |
  * | | | | | | | \- verbosity flag
  * | | | | | | \- verbosity flag
- * | | | | | \- dry run flag
+ * | | | | | \- removed (used to be noop)
  * | | | | \- create
  * | | | \- activate
  * | | \- delete 
@@ -164,7 +163,6 @@ main(int argc, char **argv) {
 				 * process, but also will allow users to get additional information regarding what
 				 * could happen, especially with increased verbosity
 				 */
-				exflags |= NOOPMASK;
 				noop = true;
 				break;
 			default:
@@ -192,10 +190,7 @@ cook(uint8_t *flags, char *bestring) {
 		case(ACTIVATE):
 			retc = activate(bestring);
 			break;
-		case(ACTIVATE|NOOPMASK):
-			retc = activate(bestring);
-			break;
-		case(CREATEBE|NOOPMASK):
+		case(CREATEBE):
 			retc = create(bestring);
 			break;
 		default:
