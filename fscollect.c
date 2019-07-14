@@ -242,7 +242,8 @@ relabel(bedata *fs, const char *label) {
 			if (dbg) {
 				fprintf(stderr,"DBG: %s [%s:%u] %s: Generated new label of (fsbuf)=%s from (fs->fstab.fs_spec)=%s\n",__progname,__FILE__,__LINE__,__func__,fsbuf,fs->fstab.fs_spec);
 			}
-			memset(fs->fstab.fs_spec,0,(size_t)NAME_MAX); /* clear out the current fstab block device entry */
+			/* Seems like a good idea, but then snapfs.c:xtractLabel() would need to be updated to handle this properly */
+			//memset(fs->fstab.fs_spec,0,(size_t)NAME_MAX); /* clear out the current fstab block device entry prior to being passed to snapfs */
 		}
 		fs->curlabel[i] = 0; /* ensure NULL termination */
 	}
