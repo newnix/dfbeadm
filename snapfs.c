@@ -61,8 +61,6 @@ extern bool noop;
 int
 snapfs(bedata *fstarget, int fscount) { 
 	/* 
-	 * This likely uses HAMMER2IOC_PFS_SNAPSHOT to create hammer2 snapshots, will need to reference
-	 * the hammer2 utility implementation.
 	 * TODO: Turn this function into an abstraction for any CoW filesystem, selected at compile-time
 	 * then if I'm able, possibly even available at runtime should multiple CoW filesystems be available
 	 * though this could be expanded to any filesystem with the same functionality of snapshots. Possibly 
@@ -83,6 +81,7 @@ snapfs(bedata *fstarget, int fscount) {
 	} else {
 		for (i ^= i; i < fscount; i++) {
 			if (fstarget[i].snap) {
+				/* XXX: Probably ready for pruning */
 				xtractLabel(fstarget[i].fstab.fs_spec, newfs);
 				/* XXX: Why is this done? */
 				strlcpy(fstarget[i].snapshot.name, newfs, NAME_MAX);

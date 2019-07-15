@@ -183,7 +183,7 @@ mktargets(bedata *target, int fscount, const char *label) {
 			target[i].snap = true;
 			openfs(target[i].fstab.fs_file,&target[i].mountfd);
 			if (relabel(&target[i], label) != 0) { 
-				fprintf(stderr,"%s [%s:%u] %s: Unable to write label %s to %s!\n",__progname,__FILE__,__LINE__,__func__,label,target[i].fstab.fs_file);
+				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to write label %s to %s!\n",__progname,__FILE__,__LINE__,__func__,label,target[i].fstab.fs_file);
 			}
 		} else {
 			target[i].snap = false;
@@ -225,22 +225,26 @@ relabel(bedata *fs, const char *label) {
 	if ((found = strchr(fs->fstab.fs_spec, BESEP)) == NULL) {
 		fprintf(stderr,"INF: %s [%s:%u] %s: No existing boot environment found for %s\n",
 				__progname,__FILE__,__LINE__,__func__,fs->fstab.fs_spec);
-		retc = -1; /* TODO: Determine better signifier for not needing to relabel the pfs */
+		retc = -1; /* TODO: Signifies no existing bootenv snapshots, need to add handling for this case */
 	} else { 
-	/* this is incorrect */
 		for (i ^= i; *found != 0 && i < NAME_MAX; found++) { 
 			fs->curlabel[i] = *found; /* copy the found label one character at a time into fs->curlabel */
 			i++;
 			/* XXX: once this is found, we need to clear out all data beyond the first instance of BESEP */
 		} 
+		if (dbg) { 
+			fprintf(stderr,"DBG: %s [%s:%u] %s: %d iterations to copy fs->curlabel=(%s)\n",__progname,__FILE__,__LINE__,__func__,i,fs->curlabel);
+		}
 		/* see if the label is too long to fit in the allocated space */
 		if ((NAME_MAX - 1)< ((unsigned int)i + strlen(label))) {
 			fprintf(stderr,"ERR: %s [%s:%u] %s: Given name of %s is too long!\n", __progname,__FILE__,__LINE__,__func__,label);
 		} else {
+			found -= i;
+			clearBElabel(found);
 			/* write the new file spec into *fsbuf */
 			snprintf(fsbuf, (NAME_MAX -1), "%s%c%s",fs->fstab.fs_spec,BESEP,label);
 			if (dbg) {
-				fprintf(stderr,"DBG: %s [%s:%u] %s: Generated new label of (fsbuf)=%s from (fs->fstab.fs_spec)=%s\n",__progname,__FILE__,__LINE__,__func__,fsbuf,fs->fstab.fs_spec);
+				fprintf(stderr,"DBG: %s [%s:%u] %s: Generated new label of (fsbuf)=%s from (fs->fstab.fs_spec)=%s%s\n",__progname,__FILE__,__LINE__,__func__,fsbuf,fs->fstab.fs_spec,fs->curlabel);
 			}
 			/* Seems like a good idea, but then snapfs.c:xtractLabel() would need to be updated to handle this properly */
 			//memset(fs->fstab.fs_spec,0,(size_t)NAME_MAX); /* clear out the current fstab block device entry prior to being passed to snapfs */
@@ -271,6 +275,20 @@ openfs(const char *mountpoint, int *fsfd) {
 	}
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Opened fd %d for %s, returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,*fsfd,mountpoint,retc);
+	}
+	return(retc);
+}
+
+/* 
+ * XXX: Maybe not needed, 0's out the name of 
+ * an existing boot environment label
+ */
+int
+clearBElabel(char *label) {
+	int retc;
+	retc = 0;
+	for (;*label != 0; label++) {
+		*label ^= *label;
 	}
 	return(retc);
 }
