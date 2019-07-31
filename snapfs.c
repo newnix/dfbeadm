@@ -79,15 +79,6 @@ snapfs(bedata *fstarget, int fscount) {
 		fprintf(stderr,"%s [%s:%u] %s: Unable to allocate buffer for newfs!\n",__progname,__FILE__,__LINE__,__func__);
 		retc = -1;
 	} else {
-		for (i ^= i; i < fscount; i++) {
-			if (fstarget[i].snap) {
-				/* XXX: Probably ready for pruning */
-				xtractLabel(fstarget[i].fstab.fs_spec, newfs);
-				/* XXX: Why is this done? */
-				strlcpy(fstarget[i].snapshot.name, newfs, NAME_MAX);
-				memset(newfs, 0, NAME_MAX);
-			}
-		}
 		/* 
 		 * Create the snapshots separate from generating the names 
 		 * This loop actually requires root access

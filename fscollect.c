@@ -230,7 +230,6 @@ relabel(bedata *fs, const char *label) {
 		for (i ^= i; *found != 0 && i < NAME_MAX; found++) { 
 			fs->curlabel[i] = *found; /* copy the found label one character at a time into fs->curlabel */
 			i++;
-			/* XXX: once this is found, we need to clear out all data beyond the first instance of BESEP */
 		} 
 		if (dbg) { 
 			fprintf(stderr,"DBG: %s [%s:%u] %s: %d iterations to copy fs->curlabel=(%s)\n",__progname,__FILE__,__LINE__,__func__,i,fs->curlabel);
@@ -241,8 +240,10 @@ relabel(bedata *fs, const char *label) {
 		} else {
 			found -= i;
 			clearBElabel(found);
-			/* write the new file spec into *fsbuf */
-			snprintf(fsbuf, (NAME_MAX -1), "%s%c%s",fs->fstab.fs_spec,BESEP,label);
+			/* write the new file spec into pfs snapshot struct */
+			snprintf(fsbuf, (NAME_MAX -1), "%s%c%s",fs->fstab.fs_spec,BESEP,label); /* no longer necessary, but nice for visualizations */
+			/* XXX: This may actually be copying too much data into the structure, test with label only */
+			snprintf(fs->snapshot.name, (NAME_MAX - 1), "%s%c%s", fs->fstab.fs_spec, BESEP, label);
 			if (dbg) {
 				fprintf(stderr,"DBG: %s [%s:%u] %s: Generated new label of (fsbuf)=%s from (fs->fstab.fs_spec)=%s%s\n",__progname,__FILE__,__LINE__,__func__,fsbuf,fs->fstab.fs_spec,fs->curlabel);
 			}
