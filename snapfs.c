@@ -94,6 +94,7 @@ snapfs(bedata *fstarget, int fscount) {
 			} else {
 				if (noop) {
 					fprintf(stdout, "DBG: %s [%s:%u] %s: Skipping creation of %s for %s\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].snapshot.name,fstarget[i].fstab.fs_file);
+					strlcat(fstarget[i].fstab.fs_spec,fstarget[i].snapshot.name,NAME_MAX);
 				} else { 
 					fprintf(stdout, "INF: %s [%s:%u] %s: Skipping %s as it is not HAMMER2\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].fstab.fs_file);
 				}

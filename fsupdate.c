@@ -84,7 +84,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 			retc = -2;
 		} else {
 			for (i = 0; i < fscount; i++) {
-				dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", (!noop) ? snapfs[i].fstab.fs_spec : snapfs[i].snapshot.name, snapfs[i].fstab.fs_file, 
+				dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].fstab.fs_file, 
 																										 snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
 																										 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
 			}
