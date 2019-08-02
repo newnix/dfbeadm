@@ -120,38 +120,3 @@ snapfs(bedata *fstarget, int fscount) {
 	}
 	return(retc);
 }
-
-/* 
- * newfs is provided, label is passed back 
- */
-void
-xtractLabel(const char *newfs, char *label) {
-	/* this function just returns the PFS label of the new snapshot */
-	char *pfssep;
-	int i;
-	pfssep = NULL;
-
-	if (dbg) {
-		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with newfs = %s\n",__progname,__FILE__,__LINE__,__func__,newfs);
-	}
-	if ((pfssep = strchr(newfs, PFSDELIM)) == NULL) {
-		fprintf(stderr,"%s [%s:%u] %s: Could not find %c in %s\n",__progname,__FILE__,__LINE__,__func__,PFSDELIM,newfs);
-		/* TODO: Revisit this code, seems to be causing trouble with NULLFS mounts */
-		return;
-	} else {
-		for (i = 0, ++pfssep; (*pfssep != 0) && (i < MNAMELEN); i++,pfssep++) {
-			/* Delete any potentially stacked boot environments */
-			if (*pfssep == BESEP) {
-				for (;(*pfssep != 0) && (i < MNAMELEN); i++,pfssep++) {
-					label[i] = *pfssep ^ *pfssep;
-				}
-			} else {
-				label[i] = *pfssep;
-			}
-		}
-		label[i] = 0;
-	}
-	if (dbg) {
-		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning to caller with label = %s\n",__progname,__FILE__,__LINE__,__func__,label);
-	}
-}

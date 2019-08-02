@@ -79,5 +79,8 @@ reinstall: uninstall install
 
 clean: uninstall
 
+push:
+	@gitsync -r ${TARGET} -n master
+
 run: ${PREFIX}${DESTDIR}${TARGET}
 	$(PREFIX)$(DESTDIR)$(TARGET)

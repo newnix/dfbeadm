@@ -37,4 +37,3 @@
 #endif
 
 int snapfs(bedata *fstarget, int fscount);
-void xtractLabel(const char *newfs, char *label);

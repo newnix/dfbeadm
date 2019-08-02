@@ -50,6 +50,9 @@
 #include "snapfs.h"
 #endif
 
+#define LABELED 0
+#define NOBE 1
+
 extern bool dbg;
 
 /* 
@@ -152,9 +155,10 @@ create(const char *label) {
  */
 void
 mktargets(bedata *target, int fscount, const char *label) {
-	int i;
+	register int i, ret;
 	struct fstab *current;
 
+	ret = 0;
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entered with target = %p, fscount = %d, label = %s\n",
 				__progname,__FILE__,__LINE__,__func__,(void *)target,fscount,label);
@@ -182,8 +186,13 @@ mktargets(bedata *target, int fscount, const char *label) {
 		if (ish2(current->fs_file)) { 
 			target[i].snap = true;
 			openfs(target[i].fstab.fs_file,&target[i].mountfd);
-			if (relabel(&target[i], label) != 0) { 
-				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to write label %s to %s!\n",__progname,__FILE__,__LINE__,__func__,label,target[i].fstab.fs_file);
+			if ((ret = relabel(&target[i], label)) != LABELED) { 
+				if ((ret = newlabel(&target[i], label)) != LABELED) {
+					/* Assume failure, remove from snapshot candidacy */
+					fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to write label %s to %s!\n",__progname,__FILE__,__LINE__,__func__,label,target[i].fstab.fs_file);
+					target[i].snap = false;
+					close(target[i].mountfd); /* XXX: may not be necessary, but should not cause issues */
+				}
 			}
 		} else {
 			target[i].snap = false;
@@ -223,9 +232,10 @@ relabel(bedata *fs, const char *label) {
 
 	/* simply check for the existence of a boot environment */
 	if ((found = strchr(fs->fstab.fs_spec, BESEP)) == NULL) {
+		/* This means there's no indication of a dfbeadm compliant snapshot here, so we can just jump into the snapshot creation logic */
 		fprintf(stderr,"INF: %s [%s:%u] %s: No existing boot environment found for %s\n",
 				__progname,__FILE__,__LINE__,__func__,fs->fstab.fs_spec);
-		retc = -1; /* TODO: Signifies no existing bootenv snapshots, need to add handling for this case */
+		retc = NOBE; 
 	} else { 
 		for (i ^= i; *found != 0 && i < NAME_MAX; found++) { 
 			fs->curlabel[i] = *found; /* copy the found label one character at a time into fs->curlabel */
@@ -290,6 +300,24 @@ clearBElabel(char *label) {
 	retc = 0;
 	for (;*label != 0; label++) {
 		*label ^= *label;
+	}
+	return(retc);
+}
+
+int
+newlabel(bedata *fs, const char *label) {
+	int retc;
+	retc = LABELED; /* same as 0, assume success */
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fs = %p, label = %s\n", __progname,__FILE__,__LINE__,__func__,(void *)fs, label);
+	}
+	/* Alert user that name might be too long */
+	if (strlen(label) + strlen(fs->fstab.fs_spec) > (NAME_MAX - 1)) {
+		fprintf(stderr,"WRN: %s [%s:%u] %s: Given label (%s) is too long and will be truncated!\n",__progname,__FILE__,__LINE__,__func__,label);
+	}
+	snprintf(fs->snapshot.name,(NAME_MAX - 1), "%s%c%s", fs->fstab.fs_spec, BESEP, label);
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
 	}
 	return(retc);
 }
