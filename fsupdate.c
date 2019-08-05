@@ -59,7 +59,7 @@ extern bool noop;
  * the fstab data
  */
 int
-autoactivate(bedata *snapfs, int fscount, const char *label) {
+autoactivate(bedata *snapfs, int fscount) {
 	/* should probably have an int in there to ensure proper iteration */
 	int i, efd, retc;
 	char *efstab;
@@ -67,8 +67,8 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 	i = efd = retc = 0;
 
 	if (dbg) {
-		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with snapfs = %p, fscount = %d, label = %s\n",
-				__progname,__FILE__,__LINE__,__func__,(void *)snapfs,fscount,label);
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with snapfs = %p, fscount = %d\n",
+				__progname,__FILE__,__LINE__,__func__,(void *)snapfs,fscount);
 	}
 	
 	if ((efstab = calloc((size_t)512, sizeof(char))) == NULL) { 
@@ -76,7 +76,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 		retc = -1;
 	} else {
 		/* generate the name of the ephemeral fstab file */
-		snprintf(efstab, (size_t)512, "/tmp/.fstab.%s_%u", label, getpid());
+		snprintf(efstab, (size_t)512, "/tmp/.fstab.%u", getpid());
 
 		if ((efd = open(efstab, O_RDWR|O_CREAT|O_NONBLOCK|O_APPEND,S_IRUSR|S_IRGRP|S_IWUSR|S_IROTH)) <= 0) { 
 			fprintf(stderr, "ERR: %s [%s:%u] %s: Unable to open %s for writing!\n",__progname,__FILE__,__LINE__,__func__,efstab);
@@ -84,7 +84,7 @@ autoactivate(bedata *snapfs, int fscount, const char *label) {
 			retc = -2;
 		} else {
 			for (i = 0; i < fscount; i++) {
-				dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].fstab.fs_file, 
+				dprintf(efd, "%s%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].snapshot.name, snapfs[i].fstab.fs_file, 
 																										 snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
 																										 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
 			}

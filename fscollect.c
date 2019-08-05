@@ -253,7 +253,7 @@ relabel(bedata *fs, const char *label) {
 			/* write the new file spec into pfs snapshot struct */
 			snprintf(fsbuf, (NAME_MAX -1), "%s%c%s",fs->fstab.fs_spec,BESEP,label); /* no longer necessary, but nice for visualizations */
 			/* XXX: This may actually be copying too much data into the structure, test with label only */
-			snprintf(fs->snapshot.name, (NAME_MAX - 1), "%s%c%s", fs->fstab.fs_spec, BESEP, label);
+			snprintf(fs->snapshot.name, (NAME_MAX - 1), "%c%s", BESEP, label);
 			if (dbg) {
 				fprintf(stderr,"DBG: %s [%s:%u] %s: Generated new label of (fsbuf)=%s from (fs->fstab.fs_spec)=%s%s\n",__progname,__FILE__,__LINE__,__func__,fsbuf,fs->fstab.fs_spec,fs->curlabel);
 			}
@@ -315,7 +315,7 @@ newlabel(bedata *fs, const char *label) {
 	if (strlen(label) + strlen(fs->fstab.fs_spec) > (NAME_MAX - 1)) {
 		fprintf(stderr,"WRN: %s [%s:%u] %s: Given label (%s) is too long and will be truncated!\n",__progname,__FILE__,__LINE__,__func__,label);
 	}
-	snprintf(fs->snapshot.name,(NAME_MAX - 1), "%s%c%s", fs->fstab.fs_spec, BESEP, label);
+	snprintf(fs->snapshot.name,(NAME_MAX - 1), "%c%s", BESEP, label);
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
 	}

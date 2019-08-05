@@ -68,52 +68,40 @@ snapfs(bedata *fstarget, int fscount) {
 	 */
 	register int i;
 	int retc;
-	char *newfs;
 
 	i = retc = 0;
 
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fstarget = %p, fscount = %d\n",__progname,__FILE__,__LINE__,__func__,(void *)fstarget,fscount);
 	}
-	if ((newfs = calloc(NAME_MAX, sizeof(char))) == NULL) { 
-		fprintf(stderr,"%s [%s:%u] %s: Unable to allocate buffer for newfs!\n",__progname,__FILE__,__LINE__,__func__);
-		retc = -1;
-	} else {
-		/* 
-		 * Create the snapshots separate from generating the names 
-		 * This loop actually requires root access
-		 */
-		for (i ^= i; i < fscount; i++) {
-			/* We use the following ioctl() to actually create a snapshot */
-			if (fstarget[i].snap && !noop) {
-				if (ioctl(fstarget[i].mountfd, HAMMER2IOC_PFS_SNAPSHOT, &fstarget[i].snapshot) != -1) {
-					fprintf(stdout, "INF: %s [%s:%u] %s: Created new snapshot: %s\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].snapshot.name);
-				} else {
-					fprintf(stderr, "ERR: %s [%s:%u] %s: H2 Snap failed!\n%s\n(target: %s)\n",__progname,__FILE__,__LINE__,__func__,strerror(errno), fstarget[i].snapshot.name);
-				}
+	/* XXX: Testing fstab installation prior to snapshot creation */
+	autoactivate(fstarget, fscount);
+	for (i ^= i; i < fscount; i++) {
+		/* We use the following ioctl() to actually create a snapshot */
+		if (fstarget[i].snap && !noop) {
+			if (ioctl(fstarget[i].mountfd, HAMMER2IOC_PFS_SNAPSHOT, &fstarget[i].snapshot) != -1) {
+				fprintf(stdout, "INF: %s [%s:%u] %s: Created new snapshot: %s\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].snapshot.name);
 			} else {
-				if (noop) {
-					fprintf(stdout, "DBG: %s [%s:%u] %s: Skipping creation of %s for %s\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].snapshot.name,fstarget[i].fstab.fs_file);
-					strlcat(fstarget[i].fstab.fs_spec,fstarget[i].snapshot.name,NAME_MAX);
-				} else { 
-					fprintf(stdout, "INF: %s [%s:%u] %s: Skipping %s as it is not HAMMER2\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].fstab.fs_file);
-				}
+				fprintf(stderr, "ERR: %s [%s:%u] %s: H2 Snap failed!\n%s\n(target: %s)\n",__progname,__FILE__,__LINE__,__func__,strerror(errno), fstarget[i].snapshot.name);
+			}
+		} else {
+			if (noop) {
+				fprintf(stdout, "DBG: %s [%s:%u] %s: Skipping creation of %s for %s\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].snapshot.name,fstarget[i].fstab.fs_file);
+				strlcat(fstarget[i].fstab.fs_spec,fstarget[i].snapshot.name,NAME_MAX);
+			} else { 
+				fprintf(stdout, "INF: %s [%s:%u] %s: Skipping %s as it is not HAMMER2\n",__progname,__FILE__,__LINE__,__func__,fstarget[i].fstab.fs_file);
 			}
 		}
-		/* Now go through and ensure we close all the file descriptors since the snapshots have been created */
-		for (i ^= i; i < fscount; i++) {
-			if (fstarget[i].mountfd != 0) {
-				if (dbg) {
-					fprintf(stderr,"DBG: %s [%s:%u] %s: Closing fd %d for %s\n",
-							__progname,__FILE__,__LINE__,__func__,fstarget[i].mountfd,fstarget[i].fstab.fs_file);
-				}
-				close(fstarget[i].mountfd);
+	}
+	/* Now go through and ensure we close all the file descriptors since the snapshots have been created */
+	for (i ^= i; i < fscount; i++) {
+		if (fstarget[i].mountfd != 0) {
+			if (dbg) {
+				fprintf(stderr,"DBG: %s [%s:%u] %s: Closing fd %d for %s\n",
+						__progname,__FILE__,__LINE__,__func__,fstarget[i].mountfd,fstarget[i].fstab.fs_file);
 			}
+			close(fstarget[i].mountfd);
 		}
-		/* TODO: Replace with call to activate(), automatic activation should be a runtime decision */
-		/* this is to separate activation from creation, despite being the same conceptually */
-		autoactivate(fstarget, fscount, newfs);
-		free(newfs);
 	}
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,retc);
