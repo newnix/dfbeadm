@@ -88,6 +88,11 @@
 #define CREATEBE 0x08
 #define ACTIVATE 0x10
 
+/* environment check results */
+/* currently limited to just UID checking */
+#define ENV_OK 0
+#define E_BADUSER 1
+
 extern char *__progname;
 extern char **environ;
 extern bool dbg;
@@ -112,6 +117,7 @@ extern bool noop;
 static void usage(void);
 /* This is where the actual logic processing should take place */
 int cook(uint8_t *flags, char *bestring);
+int envtest(void);
 
 bool dbg = false; /* Default to not adding runtime traces */
 bool noop = false;
@@ -180,6 +186,9 @@ int
 cook(uint8_t *flags, char *bestring) {
 	int retc;
 
+	if ((retc = envtest()) != 0) {
+		return(retc);
+	}
 	/* Placeholder logic to quelch compiler warnings */
 	if ((flags != NULL) && (bestring != NULL)) {
 		retc = 0;
@@ -198,6 +207,18 @@ cook(uint8_t *flags, char *bestring) {
 			break;
 	}
 
+	return(retc);
+}
+
+int
+envtest(void) {
+	int retc;
+	retc = ENV_OK;
+	retc = (geteuid() == (uid_t)0) ? ENV_OK : E_BADUSER;
+	if (retc != ENV_OK) {
+		fprintf(stderr,"ERR: %s [%s:%u] %s: You must run this tool as root (uid=0) or with sudo/doas! (Current EUID: %u)\n",
+				__progname,__FILE__,__LINE__,__func__,geteuid());
+	}
 	return(retc);
 }
 
