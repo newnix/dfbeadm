@@ -59,7 +59,7 @@ extern bool noop;
  * the fstab data
  */
 int
-autoactivate(bedata *snapfs, int fscount) {
+autoactivate(bedata *snapfs, int fscount, const char *label) {
 	/* should probably have an int in there to ensure proper iteration */
 	int i, efd, retc;
 	char *efstab;
@@ -84,9 +84,16 @@ autoactivate(bedata *snapfs, int fscount) {
 			retc = -2;
 		} else {
 			for (i = 0; i < fscount; i++) {
-				dprintf(efd, "%s%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].snapshot.name, snapfs[i].fstab.fs_file, 
-																										 snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
-																										 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
+				/* XXX: Some tweaking necessary, likely need to bring *label back */
+				if (snapfs[i].snap) {
+					dprintf(efd, "%s%c%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, BESEP, label, snapfs[i].fstab.fs_file, 
+																											 snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
+																											 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
+				} else {
+					dprintf(efd, "%s\t%s\t%s\t%s\t%d\t%d\n", snapfs[i].fstab.fs_spec, snapfs[i].fstab.fs_file, 
+																											 snapfs[i].fstab.fs_vfstype, snapfs[i].fstab.fs_mntops,
+																											 snapfs[i].fstab.fs_freq, snapfs[i].fstab.fs_passno);
+				}
 			}
 
 			/* 

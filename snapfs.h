@@ -36,4 +36,4 @@
 #include "dfbeadm.h"
 #endif
 
-int snapfs(bedata *fstarget, int fscount);
+int snapfs(bedata *fstarget, int fscount, const char *label);

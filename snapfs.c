@@ -59,7 +59,7 @@ extern bool noop;
  * Honestly, with the current bedata definitions, fscount and label may not be necessary parameters
  */
 int
-snapfs(bedata *fstarget, int fscount) { 
+snapfs(bedata *fstarget, int fscount, const char *label) { 
 	/* 
 	 * TODO: Turn this function into an abstraction for any CoW filesystem, selected at compile-time
 	 * then if I'm able, possibly even available at runtime should multiple CoW filesystems be available
@@ -75,7 +75,7 @@ snapfs(bedata *fstarget, int fscount) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fstarget = %p, fscount = %d\n",__progname,__FILE__,__LINE__,__func__,(void *)fstarget,fscount);
 	}
 	/* XXX: Testing fstab installation prior to snapshot creation */
-	autoactivate(fstarget, fscount);
+	autoactivate(fstarget, fscount, label);
 	for (i ^= i; i < fscount; i++) {
 		/* We use the following ioctl() to actually create a snapshot */
 		if (fstarget[i].snap && !noop) {

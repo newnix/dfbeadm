@@ -40,7 +40,7 @@
 #endif
 
 int activate(const char *label);
-int autoactivate(bedata *snapfs, int fscount);
+int autoactivate(bedata *snapfs, int fscount, const char *label);
 int deactivate(const char *label);
 int rmenv(const char *label);
 int rmsnap(const char *pfs);
