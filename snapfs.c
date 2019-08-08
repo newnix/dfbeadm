@@ -69,8 +69,8 @@ snapfs(bedata *fstarget, int fscount, const char *label) {
 	register int i;
 	int retc;
 
+	assert((fstarget != NULL) && (fscount > 0) && (label != NULL));
 	i = retc = 0;
-
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fstarget = %p, fscount = %d\n",__progname,__FILE__,__LINE__,__func__,(void *)fstarget,fscount);
 	}

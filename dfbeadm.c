@@ -85,6 +85,8 @@
 #include "snapfs.h"
 #endif
 
+/* envtest return code mnemonics */
+#define LISTBENV 0x04
 #define CREATEBE 0x08
 #define ACTIVATE 0x10
 
@@ -106,7 +108,7 @@ extern bool noop;
  * | | | | | | | |
  * | | | | | | | \- verbosity flag
  * | | | | | | \- verbosity flag
- * | | | | | \- removed (used to be noop)
+ * | | | | | \- list
  * | | | | \- create
  * | | | \- activate
  * | | \- delete 
@@ -138,6 +140,7 @@ main(int argc, char **argv) {
 
 	/* bail early */
 	if ( argc == 1 ) { usage(); }
+
 	while((ch = getopt(argc,argv,"a:c:d:hlnrD")) != -1) { 
 		switch(ch) { 
 			case 'a': 
@@ -153,7 +156,7 @@ main(int argc, char **argv) {
 			 * use either '-f' or '-C'
 			 */
 			case 'd':
-				deactivate(optarg);
+				NOTIMP(ch);
 				break;
 			case 'D':
 				dbg = true;
@@ -161,7 +164,9 @@ main(int argc, char **argv) {
 			case 'h':
 				usage();
 			case 'l':
-				list();
+				/* This will clear other flags */
+				exflags |= LISTBENV;
+				exflags &= LISTBENV;
 				break;
 			case 'n':
 				/* 
@@ -170,6 +175,9 @@ main(int argc, char **argv) {
 				 * could happen, especially with increased verbosity
 				 */
 				noop = true;
+				break;
+			case 'r':
+				NOTIMP(ch);
 				break;
 			default:
 				usage();
@@ -185,22 +193,24 @@ main(int argc, char **argv) {
 int
 cook(uint8_t *flags, char *bestring) {
 	int retc;
+	retc = 0;
 
 	if ((retc = envtest()) != 0) {
 		return(retc);
 	}
 	/* Placeholder logic to quelch compiler warnings */
-	if ((flags != NULL) && (bestring != NULL)) {
-		retc = 0;
-	} else {
-		retc = 1;
-	}
+	assert(flags != NULL);
 	switch(*flags) {
 		case(ACTIVATE):
+			assert(bestring != NULL);
 			retc = activate(bestring);
 			break;
 		case(CREATEBE):
+			assert(bestring != NULL);
 			retc = create(bestring);
+			break;
+		case(LISTBENV):
+			list();
 			break;
 		default:
 			usage();
@@ -228,6 +238,7 @@ envtest(void) {
 static void __attribute__((noreturn))
 usage(void) { 
 	fprintf(stderr,"%s: Utility to create HAMMER2 boot environments.\n",__progname);
+	fprintf(stderr,"WARNING: This version of %s is not yet completed, only basic functionality exists!\n",__progname);
 	fprintf(stderr,"Usage:\n"
 	               "  -a  Activate the given boot environment\n"
 	               "  -c  Create a new boot environment with the given label\n"

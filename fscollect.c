@@ -67,6 +67,7 @@ create(const char *label) {
 	struct statfs *vfsptr;
 	bedata *befs;
 	
+	assert(label != NULL);
 	i = retc = fstabcount = vfscount = 0;
 	fsptr = NULL;
 	vfsptr = NULL;
@@ -158,6 +159,7 @@ mktargets(bedata *target, int fscount, const char *label) {
 	register int i, ret;
 	struct fstab *current;
 
+	assert((target != NULL) && (label != NULL));
 	ret = 0;
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entered with target = %p, fscount = %d, label = %s\n",
@@ -220,6 +222,7 @@ relabel(bedata *fs, const char *label) {
 
 	i = retc = 0;
 	found = NULL;
+	assert((fs != NULL) && (label != NULL));
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fs = %p, label = %s\n",__progname,__FILE__,__LINE__,__func__,(void *)fs,label);
 	}
@@ -275,6 +278,8 @@ int
 openfs(const char *mountpoint, int *fsfd) {
 	int retc;
 	retc = 0;
+	/* Ensure we can't try to open mountpoints without escalated privileges */
+	assert((geteuid() == 0) && (mountpoint != NULL));
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with mountpoint = %s\n",__progname,__FILE__,__LINE__,__func__,mountpoint);
 	}
@@ -298,6 +303,7 @@ int
 clearBElabel(char *label) {
 	int retc;
 	retc = 0;
+	assert(label != NULL);
 	for (;*label != 0; label++) {
 		*label ^= *label;
 	}
@@ -308,6 +314,7 @@ int
 newlabel(bedata *fs, const char *label) {
 	int retc;
 	retc = LABELED; /* same as 0, assume success */
+	assert((fs != NULL) && (label != NULL));
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with fs = %p, label = %s\n", __progname,__FILE__,__LINE__,__func__,(void *)fs, label);
 	}
