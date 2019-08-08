@@ -243,10 +243,10 @@ usage(void) {
 	               "  -a  Activate the given boot environment\n"
 	               "  -c  Create a new boot environment with the given label\n"
 	               "  -d  Destroy the given boot environment\n"
-								 "  -D  Print debugging information during execution\n"
+	               "  -D  Print debugging information during execution\n"
 	               "  -h  This help text\n"
 	               "  -l  List existing boot environments\n"
-								 "  -n  No-op/dry run, only show what would be done\n"
+	               "  -n  No-op/dry run, only show what would be done\n"
 	               "  -r  Remove the given boot environment\n");
 	_exit(0);
 }
