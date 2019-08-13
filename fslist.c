@@ -60,8 +60,12 @@ list(void) {
 
 	found = rootfd = 0;
 
+	/* Should not be necessary with envtest() */
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering to scan possible boot environments on /\n",__progname,__FILE__,__LINE__,__func__);
+	}
 	if (geteuid() != 0) {
-		fprintf(stderr,"%s [%s:%u] %s: You must be root or run with sudo/doas for this tool to work! (Current EUID: %u)\n",
+		fprintf(stderr,"ERR: %s [%s:%u] %s: You must be root or run with sudo/doas for this tool to work! (Current EUID: %u)\n",
 				__progname,__FILE__,__LINE__,__func__,geteuid());
 	}
 	if ((rootfd = open("/", O_RDONLY|O_NONBLOCK)) < 0) { 
@@ -89,5 +93,8 @@ list(void) {
 	/* Enforce return code of 0 */
 	found = (found != 0) ? found ^ found : found;
 	close(rootfd);
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n",__progname,__FILE__,__LINE__,__func__,found);
+	}
 	return(found);
 }

@@ -144,9 +144,13 @@ main(int argc, char **argv) {
 	while((ch = getopt(argc,argv,"a:c:d:hlnrD")) != -1) { 
 		switch(ch) { 
 			case 'a': 
-				exflags |= ACTIVATE;
+				/* this codepath is not yet ready for use */
+				/* exflags |= ACTIVATE;
 				strlcpy(belabel,optarg,(MNAMELEN-1));
 				break;
+				*/
+				NOTIMP(ch);
+				return(ret);
 			case 'c':
 				exflags |= CREATEBE;
 				strlcpy(belabel,optarg,(MNAMELEN-1));
@@ -157,7 +161,7 @@ main(int argc, char **argv) {
 			 */
 			case 'd':
 				NOTIMP(ch);
-				break;
+				return(ret);
 			case 'D':
 				dbg = true;
 				break;
@@ -178,7 +182,7 @@ main(int argc, char **argv) {
 				break;
 			case 'r':
 				NOTIMP(ch);
-				break;
+				return(ret);
 			default:
 				usage();
 		}
