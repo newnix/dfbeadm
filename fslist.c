@@ -64,10 +64,7 @@ list(void) {
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering to scan possible boot environments on /\n",__progname,__FILE__,__LINE__,__func__);
 	}
-	if (geteuid() != 0) {
-		fprintf(stderr,"ERR: %s [%s:%u] %s: You must be root or run with sudo/doas for this tool to work! (Current EUID: %u)\n",
-				__progname,__FILE__,__LINE__,__func__,geteuid());
-	}
+	assert(geteuid() == 0);
 	if ((rootfd = open("/", O_RDONLY|O_NONBLOCK)) < 0) { 
 		fprintf(stderr, "%s [%s:%u] %s: Unable to open \"/\"!\n%s\n", __progname,__FILE__,__LINE__,__func__,strerror(errno));
 		return(-3);

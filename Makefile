@@ -8,7 +8,7 @@ TARGET = dfbeadm
 MUSER = ${USER}
 GROUP = ${USER}
 PREFIX = ${HOME}
-DESTDIR = /bin/c/
+DESTDIR = /bin/
 MODE = 0755
 
 ## Include files and Libraries to link ##
@@ -20,7 +20,7 @@ DBG = gdb
 DBGFLAGS = -g${DBG}
 
 CFLAGS = -Wall -Wextra -Weverything -pedantic -std=c99 -Oz\
-				 -march=native -mtune=native -z now -z combreloc\
+				  -z now -z combreloc\
 				 -Wparentheses -ffast-math -z relro -pipe -fvectorize -fstack-protector \
 				 -fstrict-enums -fstrict-return -fstack-protector-strong -fsanitize-cfi-cross-dso \
 				 -fmerge-all-constants -fstack-protector-all -Qn \
@@ -80,7 +80,7 @@ reinstall: uninstall install
 clean: uninstall
 
 push:
-	@gitsync -r ${TARGET} -n master
+	@gitsync -r ${TARGET} -n v0.1.0-BETA
 
 run: ${PREFIX}${DESTDIR}${TARGET}
 	$(PREFIX)$(DESTDIR)$(TARGET)
