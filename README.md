@@ -9,15 +9,25 @@ providing a similar interface to the command as `bectl`.
 ## Outline
 The general process works as follows:
 	* Run `sudo dfbeadm -c 2019.08.01`
+
 	* `dfbeadm` scans all mounted filesystems for HAMMER2 volumes
+
 	* Mountpoints for all HAMMER2 mounts are opend
+
 	* Existing boot environment labels are cleared if found
+
 	* The PFS label is preserved, the label given on the command-line is added onto the end
+
 	* The buffer holding all snapshot structures is passed into `snapfs()` which loops over the filesystems
+
 	* If a filesystem structure has the `snap` member set to `true`, a HAMMER2 snapshot is created
+
 	* The existing `fstab(5)` is copied to `/etc/fstab.bak`
+
 	* A new `fstab` is generated under `/tmp`
+
 	* Once the new `fstab` is tested, it's installed to `/etc/fstab`
+
 	* TODO: Handle the update of `loader.conf(5)` to point to the new boot environment
 
 ## Usage
