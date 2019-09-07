@@ -17,7 +17,7 @@ LIBS = -L. -L/usr/lib
 
 ## Compilation flags ##
 DBG = gdb 
-DBGFLAGS = -g${DBG}
+DBGFLAGS = -g${DBG} -DDEBUG -DTIMING
 
 CFLAGS = -Wall -Wextra -Weverything -pedantic -std=c99 -Oz\
 				  -z now -z combreloc\
