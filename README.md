@@ -8,6 +8,7 @@ providing a similar interface to the command as `bectl`.
 
 ## Outline
 The general process works as follows:
+
 	* Run `sudo dfbeadm -c 2019.08.01`
 
 	* `dfbeadm` scans all mounted filesystems for HAMMER2 volumes

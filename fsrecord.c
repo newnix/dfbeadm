@@ -34,6 +34,8 @@
 #ifndef DFBEADM_RECORD_H
 #include "fsrecord.h"
 #endif
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,6 +43,8 @@
 
 extern char *__progname;
 extern char **environ;
+extern bool dbg;
+extern bool noop;
 
 /* 
  * Connects to the bootenv database, sets the 
@@ -51,6 +55,13 @@ int
 connect_bedb(sqlite3 *dbptr) {
 	int retc;
 	retc = 0;
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with dbptr = %p\n", __progname, __FILE__, __LINE__, __func__, (void *)dbptr);
+	}
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller with dbptr = %p\n", __progname, __FILE__, __LINE__, __func__, retc, (void *)dbptr);
+	}
 	return(retc);
 }
 
@@ -65,7 +76,24 @@ connect_bedb(sqlite3 *dbptr) {
 int
 init_bedb(void) {
 	int retc;
+	uid_t cuid;
 	retc = 0;
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Initializing database at %s/%s\n", __progname, __FILE__, __LINE__, __func__, DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
+	}
+
+	/* Exit early if we have the wrong EUID */
+	if ((cuid = geteuid()) != 0) {
+		fprintf(stderr,"ERR: %s [%s:%u] %s: Only root can bootstrap the database!\n", __progname, __FILE__, __LINE__, __func__);
+		retc = -1;
+	} else {
+		/* Now that we know we're operating with the appropriate permissions, we can check that the config dir exists */
+	}
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n", __progname, __FILE__, __LINE__, __func__, retc);
+	}
 	return(retc);
 }
 
@@ -76,9 +104,17 @@ init_bedb(void) {
  * database that doesn't still exist on disk.
  */
 int
-read_bedata(const char *belabal) {
+read_bedata(const char *belabel) {
 	int retc;
 	retc = 0;
+	
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with belabel = %s\n", __progname, __FILE__, __LINE__, __func__, belabel);
+	}
+
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n", __progname, __FILE__, __LINE__, __func__, retc);
+	}
 	return(retc);
 }
 
@@ -92,6 +128,12 @@ int
 write_bedata(bedata *bootenv) {
 	int retc;
 	retc = 0;
+	if (dbg) { 
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with bedata at %p\n", __progname, __FILE__, __LINE__, __func__, (void *)bootenv);
+	}
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n", __progname, __FILE__, __LINE__, __func__, retc);
+	}
 	return(retc);
 }
 
@@ -105,5 +147,11 @@ int
 drop_bootenv(const char *belabel) {
 	int retc;
 	retc = 0;
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with belabel = %s\n", __progname, __FILE__, __LINE__, __func__, belabel);
+	}
+	if (dbg) {
+		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller\n", __progname, __FILE__, __LINE__, __func__, retc);
+	}
 	return(retc);
 }
