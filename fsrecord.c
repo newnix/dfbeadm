@@ -31,43 +31,79 @@
  * DAMAGE.
  */
 
-#define DFBEADM_MAIN_H
-/* Currently encoded like RGB, but Major, Minor, Patch */
-#define DFBEADM_VER 0x000200
-#define DFBEADM_VER_STRING "0.2.0-DEV"
-#define PFSDELIM '@'
-#define BESEP ':'
-#define TMAX 18
-#define NOTIMP(a) fprintf(stderr,"WRN: %s [%s:%u] %s: -%c is not implemented at this time!\n",__progname,__FILE__,__LINE__,__func__,a)
-
-/* Asserts are a good thing to have across all files */
-#include <assert.h>
-#include <stdbool.h>
-/* necessary inclusions for vfs layer data */
-#include <sys/mount.h>
-#include <sys/param.h>
-#include <sys/ucred.h>
-
-/* for fstab manipulation/verification */
-#include <fstab.h>
-
-/* HAMMER2 specific needs */
-#include <vfs/hammer2/hammer2_ioctl.h>
-
-/* struct to hold the relevant data to rebuild the fstab */
-struct bootenv_data { 
-	struct fstab fstab; /* this should be pretty obvious, but this is each PFS's description in the fstab */
-	struct hammer2_ioc_pfs snapshot; /* this is the PFS we'll be creating a snapshot with */
-	char curlabel[NAME_MAX]; /* this may actually not be necessary, bubt it's the current label of the PFS */
-	int mountfd;
-	bool snap;
-} __packed;
-
-struct efstab_lookup {
-	char mounutpoint[1024];
-	struct fstab fsent;
-};
-
-typedef struct bootenv_data bedata;
+#ifndef DFBEADM_RECORD_H
+#include "fsrecord.h"
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 extern char *__progname;
+extern char **environ;
+
+/* 
+ * Connects to the bootenv database, sets the 
+ * pointer to NULL on failure, will also signal 
+ * via a return code of 1
+ */
+int
+connect_bedb(sqlite3 *dbptr) {
+	int retc;
+	retc = 0;
+	return(retc);
+}
+
+/*
+ * Initializes the bootenvironment database, should 
+ * be done post-installation to set up necessary 
+ * tables and construct an index with some basic information
+ * It should only be possible for this function to fail
+ * if somehow it was called without appropriate permissions 
+ * to write to /usr/local/etc/dfbeadm
+ */
+int
+init_bedb(void) {
+	int retc;
+	retc = 0;
+	return(retc);
+}
+
+/*
+ * Read entries out of the database, for purposes 
+ * of listing boot environments or performing integrity checks 
+ * such as ensuring that no boot environment is listed in the 
+ * database that doesn't still exist on disk.
+ */
+int
+read_bedata(const char *belabal) {
+	int retc;
+	retc = 0;
+	return(retc);
+}
+
+/* 
+ * Write entries to the database, such as when 
+ * creating a new boot environment, the 
+ * buffer holding all the bedata structures is 
+ * passed in and converted to a table entry.
+ */
+int
+write_bedata(bedata *bootenv) {
+	int retc;
+	retc = 0;
+	return(retc);
+}
+
+/* 
+ * Delete an entry from the database, 
+ * either when explicitly deleting a boot
+ * environment or when pruning entries 
+ * that no longer exist.
+ */
+int
+drop_bootenv(const char *belabel) {
+	int retc;
+	retc = 0;
+	return(retc);
+}

@@ -42,10 +42,6 @@
  * make testing new builds almost completely painless
  */
 
-#ifdef _LINUX
-/* needed for strlcpy/strlcat */
-#include <bsd/string.h>
-#endif
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -121,7 +117,11 @@ static void usage(void);
 int cook(uint8_t *flags, char *bestring);
 int envtest(void);
 
+#ifdef DEBUG
+bool dbg = true; /* Force enable for debug builds */
+#else
 bool dbg = false; /* Default to not adding runtime traces */
+#endif
 bool noop = false;
 
 /* 
@@ -242,7 +242,7 @@ envtest(void) {
 static void __attribute__((noreturn))
 usage(void) { 
 	fprintf(stderr,"%s: Utility to create HAMMER2 boot environments.\n",__progname);
-	fprintf(stderr,"WARNING: This version of %s is not yet completed, only basic functionality exists!\n",__progname);
+	fprintf(stderr,"WARNING: This version (%s) of %s is not yet completed, only basic functionality exists!\n",DFBEADM_VER_STRING,__progname);
 	fprintf(stderr,"Usage:\n"
 	               "  -a  Activate the given boot environment\n"
 	               "  -c  Create a new boot environment with the given label\n"
