@@ -36,6 +36,9 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <err.h>
+#include <error.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,18 +80,42 @@ int
 init_bedb(void) {
 	int retc;
 	uid_t cuid;
+	mode_t cfgdir_mode;
+	struct stat cfgstat;
+	sqlite3 *recdb;
+
 	retc = 0;
+	/* Set config directory to 01755 */
+	cfgdir_mode = S_ISVTX|S_IRUSR|S_IWUSR|S_IXUSR|S_IROTH|S_IXOTH|S_IRGRP|S_IXGRP;
+	/* Ensure recdb is initialized as useless */
+	recdb = NULL;
 
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Initializing database at %s/%s\n", __progname, __FILE__, __LINE__, __func__, DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
 	}
 
-	/* Exit early if we have the wrong EUID */
+	/* 
+	 * Exit early if we have the wrong EUID 
+	 * XXX: Likely to be refactored in a later version
+	 */
 	if ((cuid = geteuid()) != 0) {
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Only root can bootstrap the database!\n", __progname, __FILE__, __LINE__, __func__);
 		retc = -1;
 	} else {
 		/* Now that we know we're operating with the appropriate permissions, we can check that the config dir exists */
+		if ((retc = stat(DFBEADM_CONFIG_DIR, &cfgstat)) != 0) {
+			/* Create the directory, should only fail if /usr/local/etc doesn't exist or is mounted read-only */
+			if ((retc = mkdir(DFBEADM_CONFIG_DIR, cfgdir_mode)) != 0) {
+				fprintf(stderr,"ERR: %s [%s:%u] %s: %s! Unable to create %s, bailing out\n", 
+						__progname, __FILE__, __LINE__, __func__, strerror(errno), DFBEADM_CONFIG_DIR);
+				return(retc);
+			}
+		}
+		if ((retc = connect_bedb(recdb)) != 0) {
+			fprintf(stderr,"ERR: %s [%s:%u] %s: Failed to connect to %s/%s, bailing out\n",
+					__progname, __FILE__, __LINE__, __func__, DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
+			return(retc);
+		}
 	}
 
 	if (dbg) {

@@ -6,6 +6,16 @@ it was inspired by. During the time this project has been worked on, `beadm` has
 `bectl` on FreeBSD. After hammering out some of the outstanding internal logic issues, I might look at
 providing a similar interface to the command as `bectl`.
 
+## Dependencies
+This tool is meant to be useful as close to out-of-the box as possible on a DragonFly BSD installation,
+so the only dependencies are:
+
+* `make(1)`
+* `cc(1)`
+* DragonFly BSD 4.6 or later (requires `/usr/include/sys/vfs/hammer2`)
+* SQLite3 (used for tracking boot envorinments, later versions will make this optional)
+
+
 ## Outline
 The general process works as follows:
 
