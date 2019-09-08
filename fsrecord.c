@@ -37,7 +37,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <err.h>
-#include <error.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,6 +78,7 @@ connect_bedb(sqlite3 *dbptr) {
 int
 init_bedb(void) {
 	int retc;
+	char recdb_path[DFBEADM_DB_PATHLEN];
 	uid_t cuid;
 	mode_t cfgdir_mode;
 	struct stat cfgstat;
@@ -89,6 +89,8 @@ init_bedb(void) {
 	cfgdir_mode = S_ISVTX|S_IRUSR|S_IWUSR|S_IXUSR|S_IROTH|S_IXOTH|S_IRGRP|S_IXGRP;
 	/* Ensure recdb is initialized as useless */
 	recdb = NULL;
+	/* This should never fail */
+	snprintf(recdb_path,DFBEADM_DB_PATHLEN,"%s/%s",DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
 
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Initializing database at %s/%s\n", __progname, __FILE__, __LINE__, __func__, DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
@@ -111,10 +113,19 @@ init_bedb(void) {
 				return(retc);
 			}
 		}
-		if ((retc = connect_bedb(recdb)) != 0) {
-			fprintf(stderr,"ERR: %s [%s:%u] %s: Failed to connect to %s/%s, bailing out\n",
-					__progname, __FILE__, __LINE__, __func__, DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
-			return(retc);
+		if ((retc = stat(recdb_path, &cfgstat)) != 0) {
+			if ((retc = sqlite3_open_v2(recdb_path, &recdb, SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE, NULL)) != SQLITE_OK) {
+				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to create record database at %s!\n",
+						__progname, __FILE__, __LINE__, __func__, recdb_path);
+			}
+			/* Create the database as specified in dfbeadm.sql, assumed to be in the same working directory */
+		} else {
+			/* If the database file exists, attempt to validate its contents */
+			if (dbg) {
+				fprintf(stderr,"INF: %s [%s:%u] %s: Database already exists at %s! Running validation checks...\n",
+						__progname, __FILE__, __LINE__, __func__, recdb_path);
+			}
+			retc = testdb(recdb_path);
 		}
 	}
 

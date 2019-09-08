@@ -47,6 +47,7 @@
 /* Define some useful data */
 #define DFBEADM_CONFIG_DIR "/usr/local/etc/dfbeadm"
 #define DFBEADM_RECORD_DB "bootenv.data"
+#define DFBEADM_DB_PATHLEN 36
 /* Planned for a future release */
 #define DFBEADM_CONFIG_FILE "bootenvs.conf"
 #define DFBEADM_BEINFO_TABLE "h2be"
