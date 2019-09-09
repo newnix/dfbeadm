@@ -5,7 +5,12 @@
 PRAGMA cell_size_check=true;
 PRAGMA case_sensitive_like=true;
 PRAGMA secure_delete=true;
-PRAGMA foreign_keys=true;
+PRAGMA foreign_keys=on;
+
+-- Database and Application version info
+-- NOTE: These are currently placeholders
+PRAGMA user_version=0;
+PRAGMA application_id=0;
 
 -- Table dofinitions
 -- Pseudo-ENUM key/value table
