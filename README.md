@@ -14,6 +14,7 @@ so the only dependencies are:
 * `cc(1)`
 * DragonFly BSD 4.6 or later (requires `/usr/include/sys/vfs/hammer2`)
 * SQLite3 (used for tracking boot envorinments, later versions will make this optional)
+* LibreSSL 2.9 (in DFBSD base, not sure of exact version needed, used for tracking database hash functions)
 
 
 ## Outline
