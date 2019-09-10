@@ -35,9 +35,11 @@
 #include "fsrecord.h"
 #endif
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,6 +70,7 @@ connect_bedb(sqlite3 *dbptr) {
 }
 
 /*
+ * TODO: Refactor to simplify control flow
  * Initializes the bootenvironment database, should 
  * be done post-installation to set up necessary 
  * tables and construct an index with some basic information
@@ -77,18 +80,18 @@ connect_bedb(sqlite3 *dbptr) {
  */
 int
 init_bedb(void) {
-	int retc;
-	char recdb_path[DFBEADM_DB_PATHLEN];
+	int retc, sqlfd;
+	char recdb_path[DFBEADM_DB_PATHLEN], *sqlbuf;
 	uid_t cuid;
 	mode_t cfgdir_mode;
 	struct stat cfgstat;
 	sqlite3 *recdb;
 
-	retc = 0;
+	retc = sqlfd = 0;
 	/* Set config directory to 01755 */
 	cfgdir_mode = S_ISVTX|S_IRUSR|S_IWUSR|S_IXUSR|S_IROTH|S_IXOTH|S_IRGRP|S_IXGRP;
 	/* Ensure recdb is initialized as useless */
-	recdb = NULL;
+	recdb = NULL; sqlbuf = NULL;
 	/* This should never fail */
 	snprintf(recdb_path,DFBEADM_DB_PATHLEN,"%s/%s",DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
 
@@ -98,7 +101,6 @@ init_bedb(void) {
 
 	/* 
 	 * Exit early if we have the wrong EUID 
-	 * XXX: Likely to be refactored in a later version
 	 */
 	if ((cuid = geteuid()) != 0) {
 		fprintf(stderr,"ERR: %s [%s:%u] %s: Only root can bootstrap the database!\n", __progname, __FILE__, __LINE__, __func__);
@@ -118,7 +120,20 @@ init_bedb(void) {
 				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to create record database at %s!\n",
 						__progname, __FILE__, __LINE__, __func__, recdb_path);
 			}
-			/* Create the database as specified in dfbeadm.sql, assumed to be in the same working directory */
+			/* 
+			 * Create the database as specified in dfbeadm.sql, assumed to be in the same working directory 
+			 * TODO: Consider allowing a command-line override, also maybe don't use a string literal
+			 */
+			if (((sqlfd = open("dfbeadm.sql", O_RDONLY|O_EXCL|O_EXLOCK)) <= 0)  && ((retc = stat("dfbeadm.sql",&cfgstat)) != 0)) {
+				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s for reading!\n",
+						__progname, __FILE__, __LINE__, __func__, "dfbeadm.sql");
+			}
+			/* Now attempt to mmap the file */
+			if ((sqlbuf = mmap(NULL, (size_t)cfgstat.st_size, PROT_READ|PROT_NONE, MAP_NOCORE|MAP_NOSYNC|MAP_PRIVATE, sqlfd, (off_t)0)) == NULL) {
+				/* Managed to not map the file somehow, as the SQL file is only slightly larger than a quarter of a page */
+				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to map %s at fd %d (%ld bytes)!\n", __progname, __FILE__, __LINE__, __func__,
+						"dfbeadm.sql", sqlfd, cfgstat.st_size);
+			}
 		} else {
 			/* If the database file exists, attempt to validate its contents */
 			if (dbg) {
