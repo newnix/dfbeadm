@@ -58,3 +58,4 @@ int init_bedb(void);
 int read_bedata(const char *belabel);
 int write_bedata(bedata *bootenv);
 int drop_bootenv(const char *belabal);
+int testdb(const char *dbpath);

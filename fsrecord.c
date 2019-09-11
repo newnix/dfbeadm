@@ -82,19 +82,19 @@ int
 init_bedb(void) {
 	int retc, sqlfd;
 	/* sqlbuf is for the mmap(2)'d file, sqlbuf_max is to mark the end of the file */
-	char recdb_path[DFBEADM_DB_PATHLEN], *sqlbuf, *sqlbuf_max;
+	char recdb_path[DFBEADM_DB_PATHLEN], *sqlbuf, *sqlbuf_max, *sqlbuf_init;
 	const char *sqltail; /* Points to the next part of the file to be compiled */
 	uid_t cuid;
 	mode_t cfgdir_mode;
 	struct stat cfgstat;
 	sqlite3 *recdb;
-	sqlite_stmt *recq;
+	sqlite3_stmt *recq;
 
 	retc = sqlfd = 0;
 	/* Set config directory to 01755 */
 	cfgdir_mode = S_ISVTX|S_IRUSR|S_IWUSR|S_IXUSR|S_IROTH|S_IXOTH|S_IRGRP|S_IXGRP;
 	/* Ensure pointers are initialized as useless */
-	recdb = NULL; sqlbuf = NULL; sqlbuf_max = NULL; sqltail = NULL; recq = NULL;
+	recdb = NULL; sqlbuf = NULL; sqlbuf_max = NULL; sqltail = NULL; recq = NULL; sqlbuf_init = NULL;
 	/* This should never fail */
 	snprintf(recdb_path,DFBEADM_DB_PATHLEN,"%s/%s",DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
 
@@ -131,12 +131,16 @@ init_bedb(void) {
 				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to open %s for reading!\n",
 						__progname, __FILE__, __LINE__, __func__, "dfbeadm.sql");
 			}
-			/* Now attempt to mmap the file */
+			/* 
+			 * Now attempt to mmap the file 
+			 * TODO: consider using madvise(2) and mprotect(2), though the short lifetime of the mapping may not be worth it
+			 */
 			if ((sqlbuf = mmap(NULL, (size_t)cfgstat.st_size, PROT_READ|PROT_NONE, MAP_NOCORE|MAP_NOSYNC|MAP_PRIVATE, sqlfd, (off_t)0)) == NULL) {
 				/* Managed to not map the file somehow, as the SQL file is only slightly larger than a quarter of a page */
 				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to map %s at fd %d (%ld bytes)!\n", __progname, __FILE__, __LINE__, __func__,
 						"dfbeadm.sql", sqlfd, cfgstat.st_size);
 			}
+			sqlbuf_init = sqlbuf; /* Record the start address */
 			sqlbuf_max = &sqlbuf[cfgstat.st_size]; /* Set sqlbuf_max to the end of the file */
 
 			/* XXX; I really hate this, needs to be split up in a future revision */
@@ -144,14 +148,14 @@ init_bedb(void) {
 				retc = sqlite3_prepare_v2(recdb, sqlbuf, (-1), &recq, &sqltail);
 				if (retc == SQLITE_OK) {
 					retc = sqlite3_step(recq);
-					/* TODO: handle these conditions better than just continuing to progress through the loop
+					/* TODO: handle these conditions better than just continuing to progress through the loop */
 					if (retc != SQLITE_DONE) {
 						fprintf(stderr,"ERR: %s [%s:%u] %s: %s\n", __progname, __FILE__, __LINE__, __func__, sqlite3_errstr(retc));
 					} else {
 						sqlite3_finalize(recq);
 					}
 				} else {
-					fprintf(stderr, "ERR: %s [%s:%u] %s: %s\n", __prognamee, __FILE__, __LINE__, __func__, sqlite3_errstr(retc));
+					fprintf(stderr, "ERR: %s [%s:%u] %s: %s\n", __progname, __FILE__, __LINE__, __func__, sqlite3_errstr(retc));
 				}
 			}
 			/* 
@@ -159,7 +163,7 @@ init_bedb(void) {
 			 * TODO: Should probably reset pointers to NULL, just to ensure no dangling pointers are left beyond the intialization stage
 			 */
 			sqlite3_close(recdb);
-			munmap(sqlbuf);
+			munmap(sqlbuf_init, (size_t)cfgstat.st_size);
 			close(sqlfd);
 		} else {
 			/* If the database file exists, attempt to validate its contents */
