@@ -10,7 +10,7 @@ PRAGMA foreign_keys=on;
 -- Database and Application version info
 -- NOTE: These are currently placeholders
 PRAGMA user_version=0;
-PRAGMA application_id=0;
+PRAGMA application_id=999;
 
 -- Table dofinitions
 -- Pseudo-ENUM key/value table
@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS h2be (
 );
 
 -- Index creation to help prevent slow lookups
-CREATE INDEX if NOT EXISTS extant_bootenvs ON h2be (belabel,extant);
+CREATE INDEX IF NOT EXISTS extant_bootenvs ON h2be (belabel,extant);
+CREATE INDEX IF NOT EXISTS fstab_hashes ON h2be (fstab,fshash);
 
 -- Populate the hash algo table with hashes 
 -- Not all of these are currently available, but should all be 
@@ -48,3 +49,6 @@ BEGIN;
 	(3, 'shake256'), -- Not in LibreSSL 2.9.1
 	(4, 'sha2-512');
 COMMIT;
+
+-- Run an optimization pass, likely does nothing during creation
+PRAGMA optimize;

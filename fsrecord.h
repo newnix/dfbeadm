@@ -51,6 +51,26 @@
 /* Planned for a future release */
 #define DFBEADM_CONFIG_FILE "bootenvs.conf"
 #define DFBEADM_BEINFO_TABLE "h2be"
+/* Compile-time constants for database testing */
+#define DFBEADM_APP_ID 999
+#define DFBEADM_USR_VER 0;
+/* 
+ * Planning for some degree of backwards compatibility, 
+ * allowing the database layout to change 
+ */
+#define DFBEADM_COMPAT_MIN 0;
+
+/* 
+ * Define enumeration values for the accepted hashing algorithms
+ */
+/* XXX: LibreSSL 2.9.1 only seems to support 0 and 4 */
+typedef enum dfbeadm_hashspec_t {
+	whirlpool = 0,
+	sha3_512 = 1,
+	blake2k512 = 2,
+	shake256 = 3,
+	sha2_512 = 4,
+} hashspec;
 
 /* Now the function declarations */
 int connect_bedb(sqlite3 *dbptr);

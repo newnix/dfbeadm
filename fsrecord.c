@@ -58,10 +58,26 @@ extern bool noop;
 int
 connect_bedb(sqlite3 *dbptr) {
 	int retc;
+	char recdb_path[DFBEADM_DB_PATHLEN];
 	retc = 0;
 
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Entering with dbptr = %p\n", __progname, __FILE__, __LINE__, __func__, (void *)dbptr);
+	}
+	snprintf(recdb_path,DFBEADM_DB_PATHLEN,"%s/%s", DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
+	if (dbptr != NULL) {
+		fprintf(stderr,"ERR: %s [%s:%u] %s: Database handle is not NULL! Returning to caller...\n", __progname, __FILE__, __LINE__, __func__);
+		return(retc);
+	}
+	if ((retc = sqlite3_open_v2(recdb_path, &dbptr, SQLITE_OPEN_READWRITE, NULL)) != SQLITE_OK) {
+		/* Ensure that the pointer is set to NULL before exiting */
+		dbptr = NULL;
+		fprintf(stderr, "ERR: %s [%s:%u] %s: Unable to connect to database %s (%s)\n", 
+				__progname, __FILE__, __LINE__, __func__, recdb_path, sqlite3_errstr(retc));
+	} else {
+		if (dbg) {
+			fprintf(stderr, "INF: %s [%s%u] %s: Connected to %s with dbptr = %p\n", __progname, __FILE__, __LINE__, __func__, recdb_path, (void *)dbptr);
+		}
 	}
 	if (dbg) {
 		fprintf(stderr,"DBG: %s [%s:%u] %s: Returning %d to caller with dbptr = %p\n", __progname, __FILE__, __LINE__, __func__, retc, (void *)dbptr);
