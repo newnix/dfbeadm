@@ -81,17 +81,20 @@ connect_bedb(sqlite3 *dbptr) {
 int
 init_bedb(void) {
 	int retc, sqlfd;
-	char recdb_path[DFBEADM_DB_PATHLEN], *sqlbuf;
+	/* sqlbuf is for the mmap(2)'d file, sqlbuf_max is to mark the end of the file */
+	char recdb_path[DFBEADM_DB_PATHLEN], *sqlbuf, *sqlbuf_max;
+	const char *sqltail; /* Points to the next part of the file to be compiled */
 	uid_t cuid;
 	mode_t cfgdir_mode;
 	struct stat cfgstat;
 	sqlite3 *recdb;
+	sqlite_stmt *recq;
 
 	retc = sqlfd = 0;
 	/* Set config directory to 01755 */
 	cfgdir_mode = S_ISVTX|S_IRUSR|S_IWUSR|S_IXUSR|S_IROTH|S_IXOTH|S_IRGRP|S_IXGRP;
-	/* Ensure recdb is initialized as useless */
-	recdb = NULL; sqlbuf = NULL;
+	/* Ensure pointers are initialized as useless */
+	recdb = NULL; sqlbuf = NULL; sqlbuf_max = NULL; sqltail = NULL; recq = NULL;
 	/* This should never fail */
 	snprintf(recdb_path,DFBEADM_DB_PATHLEN,"%s/%s",DFBEADM_CONFIG_DIR, DFBEADM_RECORD_DB);
 
@@ -134,6 +137,30 @@ init_bedb(void) {
 				fprintf(stderr,"ERR: %s [%s:%u] %s: Unable to map %s at fd %d (%ld bytes)!\n", __progname, __FILE__, __LINE__, __func__,
 						"dfbeadm.sql", sqlfd, cfgstat.st_size);
 			}
+			sqlbuf_max = &sqlbuf[cfgstat.st_size]; /* Set sqlbuf_max to the end of the file */
+
+			/* XXX; I really hate this, needs to be split up in a future revision */
+			for (; sqlbuf < sqlbuf_max; sqlbuf = (char * const)sqltail) {
+				retc = sqlite3_prepare_v2(recdb, sqlbuf, (-1), &recq, &sqltail);
+				if (retc == SQLITE_OK) {
+					retc = sqlite3_step(recq);
+					/* TODO: handle these conditions better than just continuing to progress through the loop
+					if (retc != SQLITE_DONE) {
+						fprintf(stderr,"ERR: %s [%s:%u] %s: %s\n", __progname, __FILE__, __LINE__, __func__, sqlite3_errstr(retc));
+					} else {
+						sqlite3_finalize(recq);
+					}
+				} else {
+					fprintf(stderr, "ERR: %s [%s:%u] %s: %s\n", __prognamee, __FILE__, __LINE__, __func__, sqlite3_errstr(retc));
+				}
+			}
+			/* 
+			 * Database should now be in a usable state, close connection and clean up
+			 * TODO: Should probably reset pointers to NULL, just to ensure no dangling pointers are left beyond the intialization stage
+			 */
+			sqlite3_close(recdb);
+			munmap(sqlbuf);
+			close(sqlfd);
 		} else {
 			/* If the database file exists, attempt to validate its contents */
 			if (dbg) {
